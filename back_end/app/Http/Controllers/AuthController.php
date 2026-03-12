@@ -7,14 +7,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Auth\Events\PasswordReset;
+
 use Illuminate\Support\Str;    
 
-class AuthController extends Controller
+class AuthController extends Controller 
 {
     public function login(Request $request) {
         $credentials = $request->only("email","password");
         if (!Auth::attempt($credentials)){
-            return response()->json(['error'=>'invalid_credentials'],401);          
+            return response()->json(['error'=>'Mot de passe ou email incorrect'],401);          
         }
         /** @var \App\Models\User $user */
         $user = Auth::user();

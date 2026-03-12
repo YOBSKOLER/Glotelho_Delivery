@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Livraison;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 
 class LivraisonController extends Controller
 {
