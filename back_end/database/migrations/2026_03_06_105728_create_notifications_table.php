@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('historiques', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('livraison_id')->constrained();
-            $table->string('action');
-            $table->dateTime('date');       
-            $table->timestamps();
-        });
+        Schema::create('notifications', function (Blueprint $table) {
+        $table->id();
+        $table->string('message');
+        $table->dateTime('date');
+        $table->foreignId('user_id')->constrained();
+        $table->timestamps();
+   });
     }
 
     /**
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('historiques');
+        Schema::dropIfExists('notifications');
     }
 };

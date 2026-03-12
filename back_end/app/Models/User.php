@@ -48,4 +48,13 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+
+    public function livraisons()
+    {
+        return $this->hasMany(Livraison::class,'livreur_id');
+    }   
+    public function notifications(){
+        return $this->hasMany(Notification::class);
+    }
 }

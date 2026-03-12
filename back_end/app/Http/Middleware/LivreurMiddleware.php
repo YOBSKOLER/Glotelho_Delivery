@@ -15,8 +15,8 @@ class LivreurMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if(!$request->user()|| !$request->user()->role !== 'livreur'){
-            return response()->json(['Message'=>'Acces interdit - Livreur seulementt '],403);
+        if (!$request->user() || $request->user()->role !== 'livreur') {
+            return response()->json(['Message' => 'Accès interdit - Livreur seulement'], 403);
         }
         return $next($request);
     }

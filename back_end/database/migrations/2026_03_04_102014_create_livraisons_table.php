@@ -13,6 +13,14 @@ return new class extends Migration
     {
         Schema::create('livraisons', function (Blueprint $table) {
             $table->id();
+            $table->string('name'); 
+            $table->string('adresse');
+            $table->double('latitude');
+            $table->double('longitude');
+            $table->string('detail_commande');
+            $table->string('status')->default('pending');
+            $table->date('date_livraison')->nullable();
+            $table->foreignId('livreur_id')->constrained('users');  
             $table->timestamps();
         });
     }
