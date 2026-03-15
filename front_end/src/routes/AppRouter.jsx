@@ -40,7 +40,7 @@ export default function AppRouter() {
           element={
             <ProtectedRoute requiredRole="admin">
               <div className="p-8 text-center text-gray-500">
-                Dashboard Admin — à construire prochainement 🚀
+                Dashboard Admin
               </div>
             </ProtectedRoute>
           }
@@ -52,7 +52,7 @@ export default function AppRouter() {
           element={
             <ProtectedRoute requiredRole="livreur">
               <div className="p-8 text-center text-gray-500">
-                Dashboard Livreur — à construire prochainement 🚀
+                Dashboard Livreur
               </div>
             </ProtectedRoute>
           }

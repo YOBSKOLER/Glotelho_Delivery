@@ -5,6 +5,7 @@ const api = axios.create({
   baseURL: "http://localhost:8000/api", // Ajustez selon votre back-end Laravel
   headers: {
     "Content-Type": "application/json",
+    "Accept": "application/json", 
   },
 });
 
