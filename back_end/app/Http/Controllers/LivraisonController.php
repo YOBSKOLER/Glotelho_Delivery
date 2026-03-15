@@ -32,7 +32,7 @@ class LivraisonController extends Controller
         return response()->json($livraison, 201);
     }
 
-    // liste livraisons
+    // list livraisons
     public function index()
     {
 
