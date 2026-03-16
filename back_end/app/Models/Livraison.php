@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Livraison extends Model
 {
     protected $fillable = [
+        'commande_id',   // ajouté via migration
         'name',
         'adresse',
         'latitude',
@@ -14,17 +15,23 @@ class Livraison extends Model
         'detail_commande',
         'status',
         'date_livraison',
-        'livreur_id'
+        'livreur_id',
     ];
-    
-    // Alias pour cohérence
-    const STATUS_PENDING = 'pending';
-    const STATUS_ASSIGNED = 'assigned';
-    const STATUS_DELIVERED = 'delivered';
 
+    const STATUS_PENDING    = 'pending';
+    const STATUS_ASSIGNED   = 'assigned';
+    const STATUS_DELIVERED  = 'delivered';
+
+    // Relation avec le livreur
     public function livreur()
     {
         return $this->belongsTo(User::class, 'livreur_id');
+    }
+
+    // Relation avec la commande d'origine
+    public function commande()
+    {
+        return $this->belongsTo(Commande::class);
     }
 
     public function historiques()

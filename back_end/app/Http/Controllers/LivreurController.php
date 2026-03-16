@@ -7,33 +7,37 @@ use Illuminate\Http\Request;
 
 class LivreurController extends Controller
 {
-
-    // voir ses livraisons
+    // GET /api/livreur/livraisons
+    // Le livreur voit ses livraisons avec les détails de la commande
     public function mesLivraisons(Request $request)
     {
-        return Livraison::where('livreur_id', $request->user()->id)
-                        ->get();
+        return Livraison::with('commande')
+            ->where('livreur_id', $request->user()->id)
+            ->whereIn('status', ['assigned', 'pending'])
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
-    // terminer une livraison
+    // PUT /api/livreur/livraisons/{id}/terminer
     public function terminer($id)
     {
-        $livraison = Livraison::findOrFail($id);
-        
-        // Vérifier que c'est la bonne livraison du livreur
+        $livraison = Livraison::with('commande')->findOrFail($id);
+
         if ($livraison->livreur_id !== auth()->id()) {
-            return response()->json([
-                "error" => "Accès non autorisé"
-            ], 403);
+            return response()->json(['error' => 'Accès non autorisé'], 403);
         }
 
         $livraison->status = 'delivered';
         $livraison->save();
 
+        // Synchronise le statut de la commande
+        if ($livraison->commande) {
+            $livraison->commande->update(['statut' => 'livree']);
+        }
+
         return response()->json([
-            "message" => "livraison terminée",
-            "livraison" => $livraison
+            'message'   => 'Livraison terminée.',
+            'livraison' => $livraison,
         ]);
     }
-
 }
