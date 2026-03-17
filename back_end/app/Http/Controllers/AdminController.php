@@ -24,7 +24,8 @@ class AdminController extends Controller
         $request->validate([
             'name' => 'required',
             'email' => 'required|email|unique:users',
-            'password' => 'required|min:6'
+            'password' => 'required|min:6',
+            'phone' => 'nullable|string'
         ]);
 
         $livreur = User::create([
@@ -32,7 +33,8 @@ class AdminController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'livreur'
+            'role' => 'livreur',
+            'phone' => $request->phone
 
         ]);
 
@@ -58,6 +60,7 @@ class AdminController extends Controller
 
         $livreur->name = $request->name;
         $livreur->email = $request->email;
+        $livreur->phone = $request->phone;
 
         if($request->password){
             $livreur->password = Hash::make($request->password);

@@ -7,9 +7,10 @@ export default function Drivers() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const fetchLivreurs = async () => {
     try {
@@ -28,13 +29,13 @@ export default function Drivers() {
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ name: "", email: "", password: "" });
+    setForm({ name: "", email: "", password: "", phone: "" });
     setError("");
     setShowModal(true);
   };
   const openEdit = (l) => {
     setEditItem(l);
-    setForm({ name: l.name, email: l.email, password: "" });
+    setForm({ name: l.name, email: l.email, password: "", phone: l.phone || "" });
     setError("");
     setShowModal(true);
   };
@@ -63,12 +64,12 @@ export default function Drivers() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Supprimer ce livreur ?")) return;
     try {
       await api.delete(`/admin/livreurs/${id}`);
       setLivreurs((prev) => prev.filter((l) => l.id !== id));
+      setDeleteError(""); // clear any previous error
     } catch (e) {
-      alert("Erreur lors de la suppression.");
+      setDeleteError("Erreur lors de la suppression.");
     }
   };
 
@@ -77,6 +78,7 @@ export default function Drivers() {
       title="Livreurs"
       subtitle={`${livreurs.length} livreur(s) au total`}
     >
+
       {/* Header action */}
       <div className="flex justify-end mb-5">
         <button
@@ -100,6 +102,12 @@ export default function Drivers() {
           Ajouter un livreur
         </button>
       </div>
+
+      {deleteError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+          {deleteError}
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -138,6 +146,7 @@ export default function Drivers() {
                 <tr className="bg-gray-50 text-xs text-gray-400 font-medium uppercase tracking-wider">
                   <th className="text-left px-6 py-3">Nom</th>
                   <th className="text-left px-6 py-3">Email</th>
+                  <th className="text-left px-6 py-3">Téléphone</th>
                   <th className="text-left px-6 py-3">Statut</th>
                   <th className="text-left px-6 py-3">Actions</th>
                 </tr>
@@ -157,6 +166,9 @@ export default function Drivers() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {l.email}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {l.phone}
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex px-2.5 py-1 rounded-lg text-xs font-medium bg-green-50 text-green-700">
@@ -260,7 +272,7 @@ export default function Drivers() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
-                  placeholder="Jean Dupont"
+                  placeholder="le nom du livreur"
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] bg-gray-50"
                 />
               </div>
@@ -273,7 +285,20 @@ export default function Drivers() {
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required
-                  placeholder="jean@gmail.com"
+                  placeholder="email du livreur"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] bg-gray-50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Téléphone
+                </label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  required
+                  placeholder="6 xx xx xx xx"
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] bg-gray-50"
                 />
               </div>
