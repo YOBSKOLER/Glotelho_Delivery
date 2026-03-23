@@ -7,6 +7,7 @@ use App\Models\Livraison;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
+
 class AdminController extends Controller
 {
 
@@ -25,7 +26,7 @@ class AdminController extends Controller
             'name' => 'required',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6',
-            'phone' => 'nullable|string'
+            'phone' => 'required|string'
         ]);
 
         $livreur = User::create([
@@ -52,6 +53,8 @@ class AdminController extends Controller
     }
 
 
+
+
     //  modifier livreur
     public function updateLivreur(Request $request, $id)
     {
@@ -61,6 +64,7 @@ class AdminController extends Controller
         $livreur->name = $request->name;
         $livreur->email = $request->email;
         $livreur->phone = $request->phone;
+        
 
         if($request->password){
             $livreur->password = Hash::make($request->password);
@@ -72,6 +76,22 @@ class AdminController extends Controller
             "message" => "Livreur modifié"
         ]);
     }
+    //modifier status livreur
+    public function toggleStatus($id)
+{
+    $livreur = \App\Models\User::where('id', $id)
+                               ->where('role', 'livreur')
+                               ->firstOrFail();
+
+    $livreur->status = $livreur->status === 'active' ? 'inactive' : 'active';
+    $livreur->save();
+
+    return response()->json([
+        'message' => 'Statut mis à jour.',
+        'livreur' => $livreur,
+        'status'  => $livreur->status,
+    ]);
+}
 
 
     //  supprimer livreur
@@ -91,10 +111,22 @@ class AdminController extends Controller
 
     // voir toutes les livraisons
     public function livraisons()
-    {
-        return Livraison::all();
-    }
+{
+    $livraisons = Livraison::with(['livreur', 'commande'])
+        ->orderBy('created_at', 'desc')
+        ->get();
 
+    return response()->json(['livraisons' => $livraisons]);
+}
+
+
+
+public function showLivraison($id)
+{
+    $livraison = \App\Models\Livraison::with(['livreur', 'commande'])
+        ->findOrFail($id);
+    return response()->json(['livraison' => $livraison]);
+}
     // assigner livraison
     public function assigner(Request $request)
     {

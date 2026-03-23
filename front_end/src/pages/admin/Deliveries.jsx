@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../components/AdminLayout";
 import api from "../../services/api";
 
@@ -11,21 +12,13 @@ const statusConfig = {
 
 export default function AdminLivraisons() {
   const [livraisons, setLivraisons] = useState([]);
-  const [livreurs, setLivreurs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedLiv, setSelectedLiv] = useState(null);
-  const [selectedLivreur, setSelectedLivreur] = useState("");
-  const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
 
   const fetchAll = async () => {
     try {
-      const [lRes, dRes] = await Promise.all([
-        api.get("/admin/livraisons"),
-        api.get("/admin/livreurs"),
-      ]);
+      const lRes = await api.get("/admin/livraisons");
       setLivraisons(lRes.data?.livraisons || lRes.data || []);
-      setLivreurs(dRes.data?.livreurs || dRes.data || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -36,29 +29,6 @@ export default function AdminLivraisons() {
   useEffect(() => {
     fetchAll();
   }, []);
-
-  const openAssign = (liv) => {
-    setSelectedLiv(liv);
-    setSelectedLivreur("");
-    setShowAssignModal(true);
-  };
-
-  const handleAssign = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await api.post("/admin/livraisons/assigner", {
-        livraison_id: selectedLiv.id,
-        livreur_id: selectedLivreur,
-      });
-      await fetchAll();
-      setShowAssignModal(false);
-    } catch (err) {
-      alert(err.response?.data?.message || "Erreur lors de l'assignation.");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     <AdminLayout
@@ -77,6 +47,21 @@ export default function AdminLivraisons() {
           </div>
         ) : livraisons.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+            <svg
+              width="40"
+              height="40"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              viewBox="0 0 24 24"
+              className="mb-3 opacity-40"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"
+              />
+            </svg>
             <p className="text-sm">Aucune livraison trouvée</p>
           </div>
         ) : (
@@ -90,7 +75,6 @@ export default function AdminLivraisons() {
                   <th className="text-left px-6 py-3">Livreur</th>
                   <th className="text-left px-6 py-3">Statut</th>
                   <th className="text-left px-6 py-3">Date</th>
-                  <th className="text-left px-6 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -102,16 +86,17 @@ export default function AdminLivraisons() {
                   return (
                     <tr
                       key={liv.id}
-                      className="hover:bg-gray-50 transition-colors"
+                      onClick={() => navigate(`/admin/livraisons/${liv.id}`)}
+                      className="hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                       <td className="px-6 py-4 text-xs font-mono text-gray-400">
                         #{liv.id}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-800">
-                        {liv.client_name || liv.user?.name || "—"}
+                        {liv.commande?.client_nom || liv.name || "—"}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 max-w-[160px] truncate">
-                        {liv.adresse_arrivee || "—"}
+                        {liv.commande?.client_adresse || liv.adresse || "—"}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {liv.livreur?.name || (
@@ -132,16 +117,6 @@ export default function AdminLivraisons() {
                           ? new Date(liv.created_at).toLocaleDateString("fr-FR")
                           : "—"}
                       </td>
-                      <td className="px-6 py-4">
-                        {!liv.livreur && (
-                          <button
-                            onClick={() => openAssign(liv)}
-                            className="flex items-center gap-1.5 text-xs text-[#2563EB] border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition"
-                          >
-                            Assigner
-                          </button>
-                        )}
-                      </td>
                     </tr>
                   );
                 })}
@@ -150,80 +125,6 @@ export default function AdminLivraisons() {
           </div>
         )}
       </div>
-
-      {/* Modal assignation */}
-      {showAssignModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base font-semibold text-gray-900">
-                Assigner un livreur
-              </h2>
-              <button
-                onClick={() => setShowAssignModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <p className="text-sm text-gray-500 mb-4">
-              Livraison{" "}
-              <span className="font-medium text-gray-800">
-                #{selectedLiv?.id}
-              </span>
-            </p>
-            <form onSubmit={handleAssign} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Choisir un livreur
-                </label>
-                <select
-                  value={selectedLivreur}
-                  onChange={(e) => setSelectedLivreur(e.target.value)}
-                  required
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] bg-gray-50"
-                >
-                  <option value="">-- Sélectionner --</option>
-                  {livreurs.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAssignModal(false)}
-                  className="flex-1 border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-[#2563EB] hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-xl transition disabled:opacity-60"
-                >
-                  {saving ? "Assignation..." : "Assigner"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </AdminLayout>
   );
 }

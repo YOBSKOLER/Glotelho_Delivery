@@ -2,15 +2,20 @@ import { useState, useEffect } from "react";
 import AdminLayout from "../../components/AdminLayout";
 import api from "../../services/api";
 
-export default function Drivers() {
+export default function AdminLivreurs() {
   const [livreurs, setLivreurs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+  });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
+  const [toggling, setToggling] = useState(null); // id du livreur en cours de toggle
 
   const fetchLivreurs = async () => {
     try {
@@ -29,13 +34,18 @@ export default function Drivers() {
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ name: "", email: "", password: "", phone: "" });
+    setForm({ name: "", email: "", phone: "", password: "" });
     setError("");
     setShowModal(true);
   };
   const openEdit = (l) => {
     setEditItem(l);
-    setForm({ name: l.name, email: l.email, password: "", phone: l.phone || "" });
+    setForm({
+      name: l.name,
+      email: l.email,
+      phone: l.phone,
+      password: "",
+    });
     setError("");
     setShowModal(true);
   };
@@ -67,9 +77,25 @@ export default function Drivers() {
     try {
       await api.delete(`/admin/livreurs/${id}`);
       setLivreurs((prev) => prev.filter((l) => l.id !== id));
-      setDeleteError(""); // clear any previous error
     } catch (e) {
-      setDeleteError("Erreur lors de la suppression.");
+      alert("Erreur lors de la suppression.");
+    }
+  };
+
+  // Toggle actif / inactif
+  const handleToggleStatus = async (livreur) => {
+    setToggling(livreur.id);
+    try {
+      const res = await api.put(`/admin/livreurs/${livreur.id}/toggle-status`);
+      setLivreurs((prev) =>
+        prev.map((l) =>
+          l.id === livreur.id ? { ...l, status: res.data.status } : l,
+        ),
+      );
+    } catch (e) {
+      alert("Erreur lors du changement de statut.");
+    } finally {
+      setToggling(null);
     }
   };
 
@@ -78,8 +104,6 @@ export default function Drivers() {
       title="Livreurs"
       subtitle={`${livreurs.length} livreur(s) au total`}
     >
-
-      {/* Header action */}
       <div className="flex justify-end mb-5">
         <button
           onClick={openCreate}
@@ -103,13 +127,6 @@ export default function Drivers() {
         </button>
       </div>
 
-      {deleteError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
-          {deleteError}
-        </div>
-      )}
-
-      {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         {loading ? (
           <div className="p-6 space-y-3">
@@ -152,82 +169,130 @@ export default function Drivers() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {livreurs.map((l) => (
-                  <tr key={l.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-[#2563EB] text-xs font-bold flex-shrink-0">
-                          {l.name?.charAt(0).toUpperCase()}
+                {livreurs.map((l) => {
+                  const isActive =
+                    l.status === "active" ||
+                    l.status === null ||
+                    l.status === undefined;
+                  const isToggling = toggling === l.id;
+                  return (
+                    <tr
+                      key={l.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isActive ? "bg-blue-100 text-[#2563EB]" : "bg-gray-100 text-gray-400"}`}
+                          >
+                            {l.name?.charAt(0).toUpperCase()}
+                          </div>
+                          <span
+                            className={`text-sm font-medium ${isActive ? "text-gray-800" : "text-gray-400"}`}
+                          >
+                            {l.name}
+                          </span>
                         </div>
-                        <span className="text-sm font-medium text-gray-800">
-                          {l.name}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {l.email}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {l.phone}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex px-2.5 py-1 rounded-lg text-xs font-medium bg-green-50 text-green-700">
-                        Actif
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {l.email}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {l.phone}
+                      </td>
+                      <td className="px-6 py-4">
+                        {/* Toggle button statut */}
                         <button
-                          onClick={() => openEdit(l)}
-                          className="flex items-center gap-1.5 text-xs text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
+                          onClick={() => handleToggleStatus(l)}
+                          disabled={isToggling}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            isActive
+                              ? "bg-green-50 text-green-700 hover:bg-green-100"
+                              : "bg-red-50 text-red-500 hover:bg-red-100"
+                          } disabled:opacity-50`}
                         >
-                          <svg
-                            width="13"
-                            height="13"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                          </svg>
-                          Éditer
+                          {isToggling ? (
+                            <svg
+                              className="animate-spin w-3 h-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              />
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                              />
+                            </svg>
+                          ) : (
+                            <div
+                              className={`w-2 h-2 rounded-full ${isActive ? "bg-green-500" : "bg-red-400"}`}
+                            ></div>
+                          )}
+                          {isActive ? "Actif" : "Inactif"}
                         </button>
-                        <button
-                          onClick={() => handleDelete(l.id)}
-                          className="flex items-center gap-1.5 text-xs text-red-500 border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-50 transition"
-                        >
-                          <svg
-                            width="13"
-                            height="13"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openEdit(l)}
+                            className="flex items-center gap-1.5 text-xs text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                          Supprimer
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            <svg
+                              width="13"
+                              height="13"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                            Éditer
+                          </button>
+                          <button
+                            onClick={() => handleDelete(l.id)}
+                            className="flex items-center gap-1.5 text-xs text-red-500 border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-50 transition"
+                          >
+                            <svg
+                              width="13"
+                              height="13"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                            Supprimer
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      {/* Modal */}
+      {/* Modal créer/éditer */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
@@ -272,7 +337,7 @@ export default function Drivers() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
-                  placeholder="le nom du livreur"
+                  placeholder="nom du livreur"
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] bg-gray-50"
                 />
               </div>
@@ -285,20 +350,22 @@ export default function Drivers() {
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required
-                  placeholder="email du livreur"
+                  placeholder="jean@gmail.com"
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] bg-gray-50"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Téléphone
+                  Telephone
                 </label>
                 <input
                   type="tel"
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, phone: e.target.value })
+                  }
                   required
-                  placeholder="6 xx xx xx xx"
+                  placeholder="6 xx-xx-xx-xx"
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] bg-gray-50"
                 />
               </div>

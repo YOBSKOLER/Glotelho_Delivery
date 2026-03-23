@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../components/AdminLayout";
 import api from "../../services/api";
 
@@ -38,6 +39,7 @@ export default function AdminDashboard() {
   });
   const [livraisons, setLivraisons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
@@ -227,32 +229,33 @@ export default function AdminDashboard() {
                   return (
                     <tr
                       key={liv.id}
-                      className="hover:bg-gray-50 transition-colors"
+                      onClick={() => navigate(`/admin/livraisons/${liv.id}`)}
+                      className="hover:bg-gray-50 transition-colors cursor-pointer"
                     >
-                      <td className="px-6 py-3.5 text-xs font-mono text-gray-400">
+                      <td className="px-6 py-4 text-xs font-mono text-gray-400">
                         #{liv.id}
                       </td>
-                      <td className="px-6 py-3.5 text-sm font-medium text-gray-800">
-                        {liv.client_name || liv.user?.name || "—"}
+                      <td className="px-6 py-4 text-sm font-medium text-gray-800">
+                        {liv.commande?.client_nom || liv.name || "—"}
                       </td>
-                      <td className="px-6 py-3.5 text-sm text-gray-500 max-w-[180px] truncate">
-                        {liv.adresse_arrivee || liv.address || "—"}
+                      <td className="px-6 py-4 text-sm text-gray-500 max-w-[160px] truncate">
+                        {liv.commande?.client_adresse || liv.adresse || "—"}
                       </td>
-                      <td className="px-6 py-3.5 text-sm text-gray-600">
+                      <td className="px-6 py-4 text-sm text-gray-600">
                         {liv.livreur?.name || (
                           <span className="text-gray-300 italic text-xs">
                             Non assigné
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-3.5">
+                      <td className="px-6 py-4">
                         <span
                           className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-medium ${st.cls}`}
                         >
                           {st.label}
                         </span>
                       </td>
-                      <td className="px-6 py-3.5 text-xs text-gray-400">
+                      <td className="px-6 py-4 text-xs text-gray-400">
                         {liv.created_at
                           ? new Date(liv.created_at).toLocaleDateString("fr-FR")
                           : "—"}

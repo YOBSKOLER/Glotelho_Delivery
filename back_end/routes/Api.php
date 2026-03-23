@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\LivraisonController;
 use App\Http\Controllers\LivreurController;
 use App\Http\Controllers\CommandeController;
+use App\Http\Controllers\MagentoController;
 
 //  Webhook e-commerce (public) 
 Route::post('/commandes', [CommandeController::class, 'store']);
@@ -37,6 +38,7 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::post('/admin/livreurs',        [AdminController::class, 'storeLivreur']);
     Route::get('/admin/livreurs/{id}',    [AdminController::class, 'showLivreur']);
     Route::put('/admin/livreurs/{id}',    [AdminController::class, 'updateLivreur']);
+    Route::put('/admin/livreurs/{id}/toggle-status', [AdminController::class, 'toggleStatus']);
     Route::delete('/admin/livreurs/{id}', [AdminController::class, 'deleteLivreur']);
 
     // Commandes (lecture + assignation seulement)
@@ -48,6 +50,11 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     // Livraisons (lecture seulement pour l'admin)
     Route::get('/admin/livraisons',              [AdminController::class, 'livraisons']);
     Route::post('/admin/livraisons/assigner',    [AdminController::class, 'assigner']);
+
+Route::get('/admin/livraisons/{id}', [AdminController::class, 'showLivraison']);
+
+Route::post('/admin/magento/import', [MagentoController::class, 'import']);
+Route::get('/admin/magento/status',  [MagentoController::class, 'status']);
 });
 
 // Livreur 
@@ -59,6 +66,8 @@ Route::middleware(['auth:sanctum', 'livreur'])->group(function () {
 
     Route::get('/livreur/livraisons',               [LivreurController::class, 'mesLivraisons']);
     Route::put('/livreur/livraisons/{id}/terminer', [LivreurController::class, 'terminer']);
+    Route::get('/livreur/livraisons/{id}',          [LivreurController::class, 'show']);
+Route::get('/livreur/livraisons/historique',    [LivreurController::class, 'historique']);
 });
 
 // Utilisateur connecté

@@ -10,6 +10,12 @@ import AdminHistorique from "../pages/admin/History";
 import AdminProfile from "../pages/admin/profil";
 import AdminCommandes from "../pages/admin/AdminCommandes";
 import AdminCommandeDetail from "../pages/admin/AdminCommandeDetail";
+import AdminLivraisonDetail from "../pages/admin/AdminDeliveryDetail";
+import LivreurDashboard from "../pages/livreurs/Dashboard";
+import LivreurLivraisonDetail from "../pages/livreurs/DeliveryDetails";
+import LivreurHistorique from "../pages/livreurs/History";
+import LivreurMesLivraisons from "../pages/livreurs/MyDeliveries";
+import LivreurProfile from "../pages/livreurs/Profil";
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { isAuthenticated, role } = useAuth();
@@ -18,6 +24,10 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return <Navigate to="/login" replace />;
   return children;
 };
+
+const L = ({ children }) => (
+  <ProtectedRoute requiredRole="livreur">{children}</ProtectedRoute>
+);
 
 const RoleRedirect = () => {
   const { isAuthenticated, role } = useAuth();
@@ -96,8 +106,16 @@ export default function AppRouter() {
             </A>
           }
         />
-
         <Route
+          path="/admin/livraisons/:id"
+          element={
+            <A>
+              <AdminLivraisonDetail />
+            </A>
+          }
+        />
+
+        {/* <Route
           path="/livreur/*"
           element={
             <ProtectedRoute requiredRole="livreur">
@@ -105,6 +123,47 @@ export default function AppRouter() {
                 Dashboard Livreur — bientôt 🚀
               </div>
             </ProtectedRoute>
+          }
+        /> */}
+
+        <Route
+          path="/livreur/dashboard"
+          element={
+            <L>
+              <LivreurDashboard />
+            </L>
+          }
+        />
+        <Route
+          path="/livreur/livraisons/:id"
+          element={
+            <L>
+              <LivreurLivraisonDetail />
+            </L>
+          }
+        />
+        <Route
+          path="/livreur/livraisons"
+          element={
+            <L>
+              <LivreurMesLivraisons />
+            </L>
+          }
+        />
+        <Route
+          path="/livreur/profile"
+          element={
+            <L>
+              <LivreurProfile />
+            </L>
+          }
+        />
+        <Route
+          path="/livreur/historique"
+          element={
+            <L>
+              <LivreurHistorique />
+            </L>
           }
         />
 

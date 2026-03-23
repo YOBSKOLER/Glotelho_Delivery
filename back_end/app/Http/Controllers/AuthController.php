@@ -13,15 +13,26 @@ use Illuminate\Support\Str;
 class AuthController extends Controller 
 {
     public function login(Request $request) {
-        $credentials = $request->only("email","password");
-        if (!Auth::attempt($credentials)){
-            return response()->json(['error'=>'Mot de passe ou email incorrect'],401);          
-        }
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        $token = $user->createToken('auth_token')->plainTextToken;      
-        return response()->json(['token'=> $token,'role'=>$user->role,'user'=>$user]);
+    $credentials = $request->only("email", "password");
+
+    if (!Auth::attempt($credentials)) {
+        return response()->json(['error' => 'Mot de passe ou email incorrect'], 401);
     }
+
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
+
+    // Bloque les livreurs inactifs
+    if ($user->role === 'livreur' && $user->status === 'inactive') {
+        Auth::logout();
+        return response()->json([
+            'error' => 'Votre compte a été désactivé. Contactez votre administrateur.'
+        ], 403);
+    }
+
+    $token = $user->createToken('auth_token')->plainTextToken;
+    return response()->json(['token' => $token, 'role' => $user->role, 'user' => $user]);
+}
 
     public function forgotPassword(Request $request){
         $request->validate(['email'=>'required|email']);

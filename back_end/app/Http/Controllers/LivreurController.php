@@ -40,4 +40,20 @@ class LivreurController extends Controller
             'livraison' => $livraison,
         ]);
     }
+    public function show($id) {
+    $livraison = Livraison::with('commande')
+        ->where('id', $id)
+        ->where('livreur_id', auth()->id())
+        ->firstOrFail();
+    return response()->json(['livraison' => $livraison]);
+}
+
+public function historique() {
+    $livraisons = Livraison::with('commande')
+        ->where('livreur_id', auth()->id())
+        ->where('status', 'delivered')
+        ->orderBy('updated_at', 'desc')
+        ->get();
+    return response()->json(['livraisons' => $livraisons]);
+}
 }
