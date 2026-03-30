@@ -211,11 +211,6 @@ export default function AdminCommandeDetail() {
                           {article.prix} FCFA
                         </span>
                       )}
-                      {article.fragile && (
-                        <span className="text-xs px-2 py-0.5 bg-orange-50 text-orange-500 rounded-lg">
-                          Fragile
-                        </span>
-                      )}
                     </div>
                   </div>
                 ))}

@@ -97,10 +97,15 @@ export default function LivreurLivraisonDetail() {
   const rawLng = commande?.longitude || livraison.longitude;
   const finalLat = rawLat || geoCoords?.lat;
   const finalLng = rawLng || geoCoords?.lng;
-  const visibleAddress = commande?.client_adresse || livraison.adresse || "Adresse non fournie";
-  const isFragile =
-    Array.isArray(commande?.articles) &&
-    commande.articles.some((a) => a.fragile);
+  const visibleAddress =
+    commande?.client_adresse || livraison.adresse || "Adresse non fournie";
+  
+  const totalPrix = Array.isArray(commande?.articles)
+    ? commande.articles.reduce(
+        (total, a) => total + (a.prix || 0) * (a.qty || 1),
+        0,
+      )
+    : 0;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -157,7 +162,7 @@ export default function LivreurLivraisonDetail() {
       ) : (
         <div className="h-48 bg-blue-50 flex items-center justify-center">
           <p className="text-gray-400 text-sm">
-            Coordonnées manquantes et géocodage impossible.
+            Coordonnées manquantes et géocodage échoué pour l'adresse: {visibleAddress} 
           </p>
         </div>
       )}
@@ -235,33 +240,13 @@ export default function LivreurLivraisonDetail() {
           </div>
         </div>
 
-        {/* Instructions spéciales */}
-        {commande?.instructions_speciales && (
-          <div className="bg-yellow-50 rounded-2xl p-4 border border-yellow-100">
-            <div className="flex items-start gap-2">
-              <span className="text-lg">⚠️</span>
-              <div>
-                <p className="text-xs font-semibold text-yellow-800 mb-1">
-                  Instructions spéciales
-                </p>
-                <p className="text-sm text-yellow-700">
-                  {commande.instructions_speciales}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        
 
         {/* Articles */}
         {commande?.articles && (
           <div className="bg-white rounded-2xl p-5 border border-gray-100">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-gray-800">Articles</h2>
-              {isFragile && (
-                <span className="text-xs px-2 py-1 bg-orange-50 text-orange-600 rounded-lg font-medium">
-                  ⚠ Fragile
-                </span>
-              )}
             </div>
             <div className="space-y-2">
               {commande.articles.map((article, i) => (
@@ -269,24 +254,36 @@ export default function LivreurLivraisonDetail() {
                   key={i}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-[#2563EB] bg-blue-50 px-2 py-1 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-[#2563EB] text-xs font-bold">
                       {article.qty}x
-                    </span>
+                    </div>
                     <div>
                       <p className="text-sm font-medium text-gray-800">
                         {article.nom}
                       </p>
-                      {article.type && (
+                      {/* {article.type && (
                         <p className="text-xs text-gray-400">{article.type}</p>
-                      )}
+                      )} */}
                     </div>
                   </div>
-                  {article.fragile && (
-                    <span className="text-xs text-orange-500">Fragile</span>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {article.prix > 0 && (
+                      <span className="text-xs text-gray-600 font-medium">
+                        {article.prix} FCFA
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
+              {totalPrix > 0 && (
+                <div className="flex justify-between mt-4 pt-4 border-t border-gray-100">
+                  <span className="text-sm text-gray-400">Total</span>
+                  <span className="text-sm font-bold text-gray-800">
+                    {totalPrix} FCFA
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}
