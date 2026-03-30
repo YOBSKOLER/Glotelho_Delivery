@@ -116,18 +116,23 @@ class MagentoService
     {
         try {
             $response = Http::withToken($this->token)
-                ->timeout(10)
-               ->withOptions([
+                ->withOptions([
     'verify' => false,
     'curl'   => [
-        CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_SSLVERSION     => CURL_SSLVERSION_TLSv1_0,
     ],
 ])
-                ->get("{$this->baseUrl}/rest/V1/store/storeViews");
+                ->get("{$this->baseUrl}/rest/fr/V1/store/storeViews");
 
             Log::info('Magento status: ' . $response->status());
             Log::info('Magento body: ' . $response->body());
 
+           Log::info('Magento response', [
+                'response' => $response->json(),
+                'status' => $response->status()
+            ]);
             return $response->successful();
         } catch (\Exception $e) {
             Log::error('Magento exception: ' . $e->getMessage());

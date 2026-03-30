@@ -70,11 +70,12 @@ export default function AdminHistorique() {
                     className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-6 py-4 text-xs font-mono text-gray-400">
-                      #{liv.id}
+                      #{liv.commande?.id || liv.id}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-800">
-                      {liv.client_name || liv.user?.name || "—"}
+                      {liv.commande?.client_nom || liv.name || "—"}
                     </td>
+
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {liv.livreur?.name || "—"}
                     </td>

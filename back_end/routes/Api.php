@@ -6,6 +6,8 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\LivraisonController;
 use App\Http\Controllers\LivreurController;
 use App\Http\Controllers\CommandeController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MagentoController;
 
 //  Webhook e-commerce (public) 
@@ -51,10 +53,13 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::get('/admin/livraisons',              [AdminController::class, 'livraisons']);
     Route::post('/admin/livraisons/assigner',    [AdminController::class, 'assigner']);
 
-Route::get('/admin/livraisons/{id}', [AdminController::class, 'showLivraison']);
+    Route::get('/admin/historique', [AdminController::class, 'historique']);
+    Route::post('/admin/magento/import', [MagentoController::class, 'import']);
+    Route::get('/admin/magento/status',  [MagentoController::class, 'status']);
+    Route::get('/admin/notifications/commandes', [NotificationController::class, 'commandes']);
+    Route::get('/admin/notifications',           [NotificationController::class, 'index']);
+    Route::get('/admin/livraisons/{id}', [AdminController::class, 'showLivraison']);
 
-Route::post('/admin/magento/import', [MagentoController::class, 'import']);
-Route::get('/admin/magento/status',  [MagentoController::class, 'status']);
 });
 
 // Livreur 
@@ -64,14 +69,20 @@ Route::middleware(['auth:sanctum', 'livreur'])->group(function () {
         return response()->json(['message' => 'Welcome to your livreur dashboard']);
     });
 
+    Route::get('/livreur/livraisons/historique',    [LivreurController::class, 'historique']);
     Route::get('/livreur/livraisons',               [LivreurController::class, 'mesLivraisons']);
     Route::put('/livreur/livraisons/{id}/terminer', [LivreurController::class, 'terminer']);
     Route::get('/livreur/livraisons/{id}',          [LivreurController::class, 'show']);
-Route::get('/livreur/livraisons/historique',    [LivreurController::class, 'historique']);
 });
 
 // Utilisateur connecté
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/livraisons',  [LivraisonController::class, 'index']);
     Route::post('/livraisons', [LivraisonController::class, 'store']);
+});
+
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/profile',         [ProfileController::class, 'show']);
+    Route::put('/profile/update',  [ProfileController::class, 'update']);
+    Route::put('/profile/password',[ProfileController::class, 'updatePassword']);
 });

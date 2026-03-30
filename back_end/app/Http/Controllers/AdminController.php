@@ -151,5 +151,14 @@ public function showLivraison($id)
             "livraison" => $livraison
         ]);
     }
+    public function historique()
+{
+    $livraisons = \App\Models\Livraison::with(['livreur', 'commande'])
+        ->where('status', 'delivered')
+        ->orderBy('updated_at', 'desc')
+        ->get();
+
+    return response()->json(['livraisons' => $livraisons]);
+}
 
 }

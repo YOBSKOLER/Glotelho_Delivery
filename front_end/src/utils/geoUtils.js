@@ -1,4 +1,4 @@
-// ─── Calcul de distance Haversine (en km) ────────────────────────────────────
+// ─── Haversine distance (km) ──────────────────────────────────────────────────
 export function haversineDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -9,53 +9,112 @@ export function haversineDistance(lat1, lon1, lat2, lon2) {
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// ─── Formate la distance en texte lisible ─────────────────────────────────────
 export function formatDistance(km) {
   if (km < 1) return `${Math.round(km * 1000)} m`;
   return `${km.toFixed(1)} km`;
 }
 
-// ─── Algorithme Nearest Neighbor ─────────────────────────────────────────────
-// Prend la position du livreur + liste de livraisons avec coords
-// Retourne la liste triée du plus proche au plus loin
-export function nearestNeighbor(currentLat, currentLon, livraisons) {
-  if (!livraisons || livraisons.length === 0) return [];
+// ─── Calcule la distance totale d'une route ───────────────────────────────────
+function totalRouteDistance(route) {
+  let total = 0;
+  for (let i = 0; i < route.length - 1; i++) {
+    total += haversineDistance(
+      route[i].lat,
+      route[i].lng,
+      route[i + 1].lat,
+      route[i + 1].lng,
+    );
+  }
+  return total;
+}
 
+// ─── Nearest Neighbor ─────────────────────────────────────────────────────────
+function nearestNeighborBase(startLat, startLon, livraisons) {
   const remaining = livraisons
     .filter((l) => l.lat && l.lng)
-    .map((l) => ({
-      ...l,
-      distance: haversineDistance(currentLat, currentLon, l.lat, l.lng),
-    }));
-
+    .map((l) => ({ ...l }));
   const sorted = [];
-  let fromLat = currentLat;
-  let fromLon = currentLon;
+  let fromLat = startLat;
+  let fromLon = startLon;
 
   while (remaining.length > 0) {
-    // Recalcule les distances depuis la position courante
     remaining.forEach((l) => {
       l.distance = haversineDistance(fromLat, fromLon, l.lat, l.lng);
     });
-
-    // Trouve la plus proche
     remaining.sort((a, b) => a.distance - b.distance);
     const nearest = remaining.shift();
     sorted.push(nearest);
-
-    // La prochaine étape part de la livraison qu'on vient d'ajouter
     fromLat = nearest.lat;
     fromLon = nearest.lng;
   }
-
   return sorted;
 }
 
-// ─── Géocodage via Nominatim (OpenStreetMap) ─────────────────────────────────
+// ─── 2-opt improvement ────────────────────────────────────────────────────────
+// Améliore la route en inversant des segments jusqu'à ne plus pouvoir améliorer
+function twoOpt(start, route) {
+  let improved = true;
+  let best = [...route];
+
+  while (improved) {
+    improved = false;
+    for (let i = 0; i < best.length - 1; i++) {
+      for (let j = i + 1; j < best.length; j++) {
+        // Inverse le segment entre i et j
+        const newRoute = [
+          ...best.slice(0, i),
+          ...best.slice(i, j + 1).reverse(),
+          ...best.slice(j + 1),
+        ];
+
+        const fullCurrent = [start, ...best];
+        const fullNew = [start, ...newRoute];
+
+        if (totalRouteDistance(fullNew) < totalRouteDistance(fullCurrent)) {
+          best = newRoute;
+          improved = true;
+        }
+      }
+    }
+  }
+
+  // Recalcule les distances depuis le point de départ après optimisation
+  let fromLat = start.lat;
+  let fromLon = start.lng;
+  return best.map((l) => {
+    const distance = haversineDistance(fromLat, fromLon, l.lat, l.lng);
+    fromLat = l.lat;
+    fromLon = l.lng;
+    return { ...l, distance };
+  });
+}
+
+// ─── Nearest Neighbor + 2-opt (algorithme principal) ─────────────────────────
+export function nearestNeighbor(currentLat, currentLon, livraisons) {
+  if (!livraisons || livraisons.length === 0) return [];
+
+  const start = { lat: currentLat, lng: currentLon };
+
+  // Étape 1 — Nearest Neighbor pour un premier ordre
+  const nnRoute = nearestNeighborBase(currentLat, currentLon, livraisons);
+
+  // Étape 2 — 2-opt pour améliorer cet ordre
+  // (ne tourne pas si 1 seule livraison)
+  if (nnRoute.length <= 1) {
+    return nnRoute.map((l) => ({
+      ...l,
+      distance: haversineDistance(currentLat, currentLon, l.lat, l.lng),
+    }));
+  }
+
+  const optimized = twoOpt(start, nnRoute);
+  return optimized;
+}
+
+// ─── Géocodage Nominatim ──────────────────────────────────────────────────────
 export async function geocodeAddress(address) {
   try {
     const encoded = encodeURIComponent(address);
@@ -65,10 +124,7 @@ export async function geocodeAddress(address) {
     );
     const data = await res.json();
     if (data && data.length > 0) {
-      return {
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon),
-      };
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
     }
     return null;
   } catch {
@@ -76,7 +132,7 @@ export async function geocodeAddress(address) {
   }
 }
 
-// ─── Récupère la position GPS du livreur ──────────────────────────────────────
+// ─── Position GPS ─────────────────────────────────────────────────────────────
 export function getCurrentPosition() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -89,4 +145,23 @@ export function getCurrentPosition() {
       { enableHighAccuracy: true, timeout: 10000 },
     );
   });
+}
+
+// ─── Vraie route OSRM ────────────────────────────────────────────────────────
+export async function getRealRoute(waypoints) {
+  if (!waypoints || waypoints.length < 2) return [];
+  try {
+    const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(";");
+    const res = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`,
+      { signal: AbortSignal.timeout(8000) },
+    );
+    if (!res.ok) return waypoints.map((p) => [p.lat, p.lng]);
+    const data = await res.json();
+    if (data.code !== "Ok" || !data.routes?.length)
+      return waypoints.map((p) => [p.lat, p.lng]);
+    return data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+  } catch {
+    return waypoints.map((p) => [p.lat, p.lng]);
+  }
 }

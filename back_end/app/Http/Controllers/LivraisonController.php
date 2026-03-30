@@ -34,10 +34,11 @@ class LivraisonController extends Controller
 
     // list livraisons
     public function index()
-    {
+{
+    $livraisons = \App\Models\Livraison::with('commande')
+        ->latest()
+        ->paginate(10);
 
-        return Livraison::all();
-
-    }
-
+    return response()->json($livraisons);
+}
 }
