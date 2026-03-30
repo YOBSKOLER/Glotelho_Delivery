@@ -231,11 +231,6 @@ export default function LivreurLivraisonDetail() {
           <div className="bg-white rounded-2xl p-5 border border-gray-100">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-gray-800">Articles</h2>
-              {isFragile && (
-                <span className="text-xs px-2 py-1 bg-orange-50 text-orange-600 rounded-lg font-medium">
-                  ⚠ Fragile
-                </span>
-              )}
             </div>
             <div className="space-y-2">
               {commande.articles.map((article, i) => (
@@ -256,9 +251,6 @@ export default function LivreurLivraisonDetail() {
                       )}
                     </div>
                   </div>
-                  {article.fragile && (
-                    <span className="text-xs text-orange-500">Fragile</span>
-                  )}
                 </div>
               ))}
             </div>
@@ -284,12 +276,12 @@ export default function LivreurLivraisonDetail() {
             disabled={terminating}
             className="w-full bg-[#10B981] hover:bg-green-600 text-white font-semibold py-4 rounded-2xl transition flex items-center justify-center gap-2 shadow-lg disabled:opacity-60"
           >
-            {terminating ? "Confirmation..." : "✅ Marquer comme livrée"}
+            {terminating ? "Confirmation..." : " Marquer comme livrée"}
           </button>
         )}
         {livraison.status === "delivered" && (
           <div className="w-full bg-green-50 border border-green-200 text-green-700 font-semibold py-4 rounded-2xl text-center">
-            ✅ Livraison terminée
+            Livraison terminée
           </div>
         )}
       </div>
