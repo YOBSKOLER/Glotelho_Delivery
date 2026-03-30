@@ -85,6 +85,12 @@ export default function AdminCommandeDetail() {
   const isFragile =
     Array.isArray(commande.articles) &&
     commande.articles.some((a) => a.fragile);
+  const totalPrix = Array.isArray(commande?.articles)
+    ? commande.articles.reduce(
+        (total, a) => total + (a.prix || 0) * (a.qty || 1),
+        0,
+      )
+    : 0;
 
   return (
     <AdminLayout
@@ -192,15 +198,31 @@ export default function AdminCommandeDetail() {
                             {article.type}
                           </p>
                         )}
+                        {article.sku && (
+                          <p className="text-xs text-gray-300">
+                            SKU: {article.sku}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    {article.fragile && (
-                      <span className="text-xs px-2 py-0.5 bg-orange-50 text-orange-500 rounded-lg">
-                        Fragile
-                      </span>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {article.prix > 0 && (
+                        <span className="text-xs text-gray-600 font-medium">
+                          {article.prix} FCFA
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
+              {/* Total uniquement si au moins un article a un prix */}
+              {totalPrix > 0 && (
+                <div className="flex justify-between mt-4 pt-4 border-t border-gray-100">
+                  <span className="text-sm text-gray-400">Total</span>
+                  <span className="text-sm font-bold text-gray-800">
+                    {totalPrix} FCFA
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

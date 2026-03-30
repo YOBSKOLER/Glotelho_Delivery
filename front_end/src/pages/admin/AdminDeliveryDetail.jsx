@@ -59,14 +59,22 @@ export default function AdminLivraisonDetail() {
     Array.isArray(commande?.articles) &&
     commande.articles.some((a) => a.fragile);
 
+  // Calcul du total prix — on vérifie que prix existe avant de calculer
+  const totalPrix = Array.isArray(commande?.articles)
+    ? commande.articles.reduce(
+        (total, a) => total + (a.prix || 0) * (a.qty || 1),
+        0,
+      )
+    : 0;
+
   return (
     <AdminLayout
       title={`Livraison #${livraison.id}`}
       subtitle="Détails de la livraison"
     >
-      {/* Retour */}
+      {/* Retour — pointe vers la page unifiée commandes */}
       <button
-        onClick={() => navigate("/admin/livraisons")}
+        onClick={() => navigate("/admin/commandes")}
         className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 mb-5 transition"
       >
         <svg
@@ -83,7 +91,7 @@ export default function AdminLivraisonDetail() {
             d="M15 19l-7-7 7-7"
           />
         </svg>
-        Retour aux livraisons
+        Retour aux commandes
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -166,15 +174,36 @@ export default function AdminLivraisonDetail() {
                             {article.type}
                           </p>
                         )}
+                        {article.sku && (
+                          <p className="text-xs text-gray-300">
+                            SKU: {article.sku}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    {article.fragile && (
-                      <span className="text-xs px-2 py-0.5 bg-orange-50 text-orange-500 rounded-lg">
-                        Fragile
-                      </span>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {article.prix > 0 && (
+                        <span className="text-xs text-gray-600 font-medium">
+                          {article.prix} FCFA
+                        </span>
+                      )}
+                      {article.fragile && (
+                        <span className="text-xs px-2 py-0.5 bg-orange-50 text-orange-500 rounded-lg">
+                          Fragile
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
+                {/* Total uniquement si au moins un article a un prix */}
+                {totalPrix > 0 && (
+                  <div className="flex justify-between mt-4 pt-4 border-t border-gray-100">
+                    <span className="text-sm text-gray-400">Total</span>
+                    <span className="text-sm font-bold text-gray-800">
+                      {totalPrix} FCFA
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -211,7 +240,7 @@ export default function AdminLivraisonDetail() {
 
         {/* Colonne droite */}
         <div className="space-y-5">
-          {/* Livreur assigné */}
+          {/* Livreur */}
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <h2 className="text-sm font-semibold text-gray-800 mb-4">
               Livreur assigné
@@ -255,6 +284,14 @@ export default function AdminLivraisonDetail() {
                   </span>
                 </div>
               )}
+              {commande?.source_id && (
+                <div className="flex justify-between py-2 border-b border-gray-50">
+                  <span className="text-gray-400">Ref. Magento</span>
+                  <span className="font-mono text-xs text-gray-600">
+                    {commande.source_id}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between py-2 border-b border-gray-50">
                 <span className="text-gray-400">Date livraison</span>
                 <span className="text-gray-700">
@@ -276,7 +313,7 @@ export default function AdminLivraisonDetail() {
             </div>
           </div>
 
-          {/* Lien vers la commande */}
+          {/* Lien commande */}
           {commande && (
             <button
               onClick={() => navigate(`/admin/commandes/${commande.id}`)}

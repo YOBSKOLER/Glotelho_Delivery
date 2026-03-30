@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import livreurService from "../../services/livreurService";
+import { FiPackage, FiMapPin, FiCalendar } from "react-icons/fi";
 
 const statusConfig = {
   pending: { label: "En attente", cls: "bg-yellow-50 text-yellow-700" },
@@ -70,7 +71,9 @@ export default function LivreurMesLivraisons() {
           </div>
         ) : livraisons.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <p className="text-5xl mb-4">📦</p>
+            <p className="text-5xl mb-4">
+              <FiPackage size={25} />
+            </p>
             <p className="text-sm font-medium">Aucune livraison assignée</p>
             <p className="text-xs mt-1 text-gray-300">Revenez plus tard</p>
           </div>
@@ -104,12 +107,19 @@ export default function LivreurMesLivraisons() {
                   </div>
 
                   <p className="text-xs text-gray-500 ml-9 mb-3">
-                    📍 {liv.commande?.client_adresse || liv.adresse || "—"}
+                    <FiMapPin
+                      size={12}
+                      className="text-gray-400 flex-shrink-0"
+                    />{" "}
+                    {liv.commande?.client_adresse || liv.adresse || "—"}
                   </p>
 
                   <div className="flex items-center justify-between ml-9">
                     <p className="text-xs text-gray-400">
-                      📅{" "}
+                      <FiCalendar
+                        size={12}
+                        className="text-gray-400 flex-shrink-0"
+                      />{" "}
                       {liv.date_livraison
                         ? new Date(liv.date_livraison).toLocaleDateString(
                             "fr-FR",

@@ -10,5 +10,5 @@ Artisan::command('inspire', function () {
 
 
 
-// Import automatique des commandes Magento toutes les 5 minutes
-Schedule::command('magento:import-orders')->everyFiveMinutes();
+// Import automatique des commandes Magento toutes les 10 minutes
+Schedule::command('magento:import-orders')->everyMinute();
