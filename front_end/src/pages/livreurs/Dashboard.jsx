@@ -16,6 +16,7 @@ import {
   geocodeAddress,
   getCurrentPosition,
   formatDistance,
+  getRealRoute, // ← ajoute ça
 } from "../../utils/geoUtils";
 import {
   FiMenu,
@@ -108,6 +109,7 @@ export default function LivreurDashboard() {
     try {
       const pos = await getCurrentPosition();
       setPosition(pos);
+
       const withCoords = await Promise.all(
         livraisons.map(async (liv) => {
           const adresse = liv.commande?.client_adresse || liv.adresse;
@@ -123,17 +125,28 @@ export default function LivreurDashboard() {
           return { ...liv, lat: parseFloat(lat), lng: parseFloat(lng) };
         }),
       );
+
       const sorted = nearestNeighbor(pos.lat, pos.lng, withCoords);
       setOptimized(sorted);
-      setRouteCoords([
-        [pos.lat, pos.lng],
-        ...sorted.filter((l) => l.lat && l.lng).map((l) => [l.lat, l.lng]),
-      ]);
+
+      // Waypoints dans l'ordre optimisé
+      const waypoints = [
+        { lat: pos.lat, lng: pos.lng },
+        ...sorted
+          .filter((l) => l.lat && l.lng)
+          .map((l) => ({ lat: l.lat, lng: l.lng })),
+      ];
+
+      // Vraie route OSRM
+      const route = await getRealRoute(waypoints);
+      setRouteCoords(route);
+
       watchRef.current = navigator.geolocation.watchPosition(
         (p) => setPosition({ lat: p.coords.latitude, lng: p.coords.longitude }),
         null,
         { enableHighAccuracy: true },
       );
+
       setStarted(true);
       setDrawerOpen(true);
     } catch (e) {
@@ -149,13 +162,20 @@ export default function LivreurDashboard() {
     try {
       await livreurService.terminer(livraison.id);
       const remaining = optimized.filter((l) => l.id !== livraison.id);
+
       if (remaining.length > 0 && position) {
         const sorted = nearestNeighbor(position.lat, position.lng, remaining);
         setOptimized(sorted);
-        setRouteCoords([
-          [position.lat, position.lng],
-          ...sorted.filter((l) => l.lat && l.lng).map((l) => [l.lat, l.lng]),
-        ]);
+
+        // Recalcule la vraie route depuis la position actuelle
+        const waypoints = [
+          { lat: position.lat, lng: position.lng },
+          ...sorted
+            .filter((l) => l.lat && l.lng)
+            .map((l) => ({ lat: l.lat, lng: l.lng })),
+        ];
+        const route = await getRealRoute(waypoints);
+        setRouteCoords(route);
       } else {
         setOptimized(remaining);
         setRouteCoords([]);
@@ -165,7 +185,7 @@ export default function LivreurDashboard() {
     }
   };
 
-  const defaultPosition = position || { lat: 3.8667, lng: 11.5167 };
+  const defaultPosition = position || { lat: 4.0511, lng: 9.7679 };
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-gray-900">
@@ -198,7 +218,7 @@ export default function LivreurDashboard() {
                   icon: <FiPackage size={16} />,
                   onClick: () => {
                     setMenuOpen(false);
-                    setDrawerOpen(true);
+                    navigate("/livreur/livraisons");
                   },
                 },
                 {
@@ -266,7 +286,13 @@ export default function LivreurDashboard() {
           </p>
         </div>
         <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white text-sm font-bold">
-          {user?.name?.charAt(0).toUpperCase()}
+          <button
+            onClick={() => {
+              navigate("/livreur/profile");
+            }}
+          >
+            {user?.name?.charAt(0).toUpperCase()}
+          </button>
         </div>
       </div>
 

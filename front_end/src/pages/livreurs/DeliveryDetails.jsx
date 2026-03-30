@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import api from "../../services/api";
 import livreurService from "../../services/livreurService";
+import { geocodeAddress } from "../../utils/geoUtils";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -19,7 +20,8 @@ export default function LivreurLivraisonDetail() {
   const [livraison, setLivraison] = useState(null);
   const [loading, setLoading] = useState(true);
   const [terminating, setTerminating] = useState(false);
-  const [demarring, setDemarring] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geoCoords, setGeoCoords] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -34,17 +36,34 @@ export default function LivreurLivraisonDetail() {
     })();
   }, [id]);
 
-  const handleDemarrer = async () => {
-    setDemarring(true);
-    try {
-      await livreurService.demarrer(id);
-      setLivraison((prev) => ({ ...prev, status: "in_delivery" }));
-    } catch (e) {
-      alert("Erreur lors du démarrage.");
-    } finally {
-      setDemarring(false);
+  useEffect(() => {
+    if (!livraison) return;
+
+    const commande = livraison.commande;
+    const rawLat = commande?.latitude || livraison.latitude;
+    const rawLng = commande?.longitude || livraison.longitude;
+    if (rawLat && rawLng) {
+      setGeoCoords(null);
+      return;
     }
-  };
+
+    const adresse = commande?.client_adresse || livraison.adresse;
+    if (!adresse) return;
+
+    (async () => {
+      setGeocoding(true);
+      try {
+        const coords = await geocodeAddress(adresse);
+        if (coords?.lat && coords?.lng) {
+          setGeoCoords(coords);
+        }
+      } catch (e) {
+        console.error("Erreur géocodage:", e);
+      } finally {
+        setGeocoding(false);
+      }
+    })();
+  }, [livraison]);
 
   const handleTerminer = async () => {
     if (!window.confirm("Confirmer la livraison ?")) return;
@@ -74,8 +93,11 @@ export default function LivreurLivraisonDetail() {
     );
 
   const commande = livraison.commande;
-  const lat = commande?.latitude || livraison.latitude;
-  const lng = commande?.longitude || livraison.longitude;
+  const rawLat = commande?.latitude || livraison.latitude;
+  const rawLng = commande?.longitude || livraison.longitude;
+  const finalLat = rawLat || geoCoords?.lat;
+  const finalLng = rawLng || geoCoords?.lng;
+  const visibleAddress = commande?.client_adresse || livraison.adresse || "Adresse non fournie";
   const isFragile =
     Array.isArray(commande?.articles) &&
     commande.articles.some((a) => a.fragile);
@@ -114,24 +136,28 @@ export default function LivreurLivraisonDetail() {
       </div>
 
       {/* Carte */}
-      {lat && lng ? (
+      {finalLat && finalLng ? (
         <div className="h-48">
           <MapContainer
-            center={[lat, lng]}
+            center={[finalLat, finalLng]}
             zoom={15}
             style={{ height: "100%", width: "100%" }}
             zoomControl={false}
           >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <Marker position={[lat, lng]}>
-              <Popup>{commande?.client_adresse || livraison.adresse}</Popup>
+            <Marker position={[finalLat, finalLng]}>
+              <Popup>{visibleAddress}</Popup>
             </Marker>
           </MapContainer>
+        </div>
+      ) : geocoding ? (
+        <div className="h-48 bg-blue-50 flex items-center justify-center">
+          <div className="text-gray-500 text-sm">Géocodage de l'adresse...</div>
         </div>
       ) : (
         <div className="h-48 bg-blue-50 flex items-center justify-center">
           <p className="text-gray-400 text-sm">
-            Coordonnées GPS non disponibles
+            Coordonnées manquantes et géocodage impossible.
           </p>
         </div>
       )}
@@ -268,15 +294,6 @@ export default function LivreurLivraisonDetail() {
 
       {/* Boutons d'action */}
       <div className="px-4 pb-8 space-y-3">
-        {livraison.status === "assigned" && (
-          <button
-            onClick={handleDemarrer}
-            disabled={demarring}
-            className="w-full bg-[#F59E0B] hover:bg-amber-600 text-white font-semibold py-4 rounded-2xl transition flex items-center justify-center gap-2 shadow-lg disabled:opacity-60"
-          >
-            {demarring ? "Démarrage..." : "🚚 Démarrer la livraison"}
-          </button>
-        )}
         {(livraison.status === "assigned" ||
           livraison.status === "in_delivery") && (
           <button
@@ -284,12 +301,12 @@ export default function LivreurLivraisonDetail() {
             disabled={terminating}
             className="w-full bg-[#10B981] hover:bg-green-600 text-white font-semibold py-4 rounded-2xl transition flex items-center justify-center gap-2 shadow-lg disabled:opacity-60"
           >
-            {terminating ? "Confirmation..." : "✅ Marquer comme livrée"}
+            {terminating ? "Confirmation..." : " Marquer comme livrée"}
           </button>
         )}
         {livraison.status === "delivered" && (
           <div className="w-full bg-green-50 border border-green-200 text-green-700 font-semibold py-4 rounded-2xl text-center">
-            ✅ Livraison terminée
+            Livraison terminée
           </div>
         )}
       </div>
