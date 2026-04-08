@@ -23,7 +23,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Composant signature 
+// ── Composant signature
 function SignaturePad({ onSave, onClear }) {
   const canvasRef = useRef(null);
   const drawing = useRef(false);
@@ -141,7 +141,7 @@ export default function DeliveryDetails() {
     })();
   }, [id]);
 
-  //  Photo 
+  //  Photo
   const handlePhoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -150,7 +150,7 @@ export default function DeliveryDetails() {
     reader.readAsDataURL(file);
   };
 
-  // Terminer avec preuve 
+  // Terminer avec preuve
   const handleTerminer = async (e) => {
     e.preventDefault();
     if (!signature) {
@@ -175,7 +175,9 @@ export default function DeliveryDetails() {
             JSON.stringify(optimized),
           );
         }
-      } catch { /* empty */ }
+      } catch {
+        /* empty */
+      }
       navigate("/livreur/dashboard");
     } catch {
       alert("Erreur lors de la confirmation.");
@@ -184,7 +186,7 @@ export default function DeliveryDetails() {
     }
   };
 
-  // ── Reporter ───────────────────────────────────────────────────────────────
+  //  Reporter
   const handleReporter = async (e) => {
     e.preventDefault();
     if (!reportRaison.trim()) {
@@ -672,7 +674,7 @@ export default function DeliveryDetails() {
               {reportDate && reportHeure && (
                 <div className="bg-purple-50 rounded-xl p-3 border border-purple-100">
                   <p className="text-xs text-purple-700 font-semibold">
-                    📅 Nouveau RDV :{" "}
+                    Nouveau RDV :{" "}
                     {new Date(`${reportDate}T${reportHeure}`).toLocaleString(
                       "fr-FR",
                       {
