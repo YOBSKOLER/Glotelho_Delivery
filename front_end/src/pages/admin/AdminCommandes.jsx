@@ -215,7 +215,7 @@ export default function AdminCommandesLivraisons() {
         ))}
       </div>
 
-      {/* Recherche — supporte ID Magento */}
+      {/* Recherche */}
       <div className="relative mb-5">
         <FiSearch
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"

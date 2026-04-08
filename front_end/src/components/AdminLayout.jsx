@@ -65,23 +65,20 @@ export default function AdminLayout({ children, title, subtitle }) {
     <>
       {/* Logo */}
       <div
-        className={`flex items-center gap-3 px-4 py-5 border-b ${dark ? "border-gray-700" : "border-gray-100"} ${collapsed ? "justify-center" : ""}`}
+        className={`flex items-center justify-center px-4 py-5 border-b border-gray-100 ${collapsed ? "justify-center" : ""}`}
       >
-        <div className="w-9 h-9 bg-[#2563EB] rounded-xl flex items-center justify-center flex-shrink-0">
+        {collapsed ? (
           <img
-            src="/src/assets/images/logo.png"
-            alt="Glotelho Delivery"
-            className="h-20 w-auto"
+            src="/src/assets/images/Favicon.png"
+            alt="Glotelho"
+            className="w-10 h-10"
           />
-        </div>
-        {!collapsed && (
-          <div>
-            <img
-              src="/src/assets/images/logo1.png"
-              alt="Glotelho Delivery"
-              className="h-20 w-auto"
-            />
-          </div>
+        ) : (
+          <img
+            src="/src/assets/images/logo1.png"
+            alt="Glotelho Delivery"
+            className="h-18 w-auto"
+          />
         )}
       </div>
 
