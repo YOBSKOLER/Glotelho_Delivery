@@ -68,14 +68,19 @@ export default function AdminLayout({ children, title, subtitle }) {
         className={`flex items-center gap-3 px-4 py-5 border-b ${dark ? "border-gray-700" : "border-gray-100"} ${collapsed ? "justify-center" : ""}`}
       >
         <div className="w-9 h-9 bg-[#2563EB] rounded-xl flex items-center justify-center flex-shrink-0">
-          <FiTruck size={18} color="white" />
+          <img
+            src="/src/assets/images/logo.png"
+            alt="Glotelho Delivery"
+            className="h-20 w-auto"
+          />
         </div>
         {!collapsed && (
           <div>
-            <div className={`text-sm font-semibold leading-tight ${txt}`}>
-              Glotelho
-            </div>
-            <div className={`text-xs ${sub}`}>Delivery Admin</div>
+            <img
+              src="/src/assets/images/logo1.png"
+              alt="Glotelho Delivery"
+              className="h-20 w-auto"
+            />
           </div>
         )}
       </div>

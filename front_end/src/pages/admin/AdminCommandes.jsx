@@ -127,7 +127,7 @@ export default function AdminCommandesLivraisons() {
     setPage(1);
   }, [activeTab, search]);
 
-  // ── Filtre commandes ─────────────────────────────────────────────────────
+  //  Filtre commandes 
   const filtered = commandes.filter((c) => {
     const matchTab = activeTab === "tous" || c.statut === activeTab;
     const matchSearch =
@@ -135,7 +135,7 @@ export default function AdminCommandesLivraisons() {
       c.client_nom?.toLowerCase().includes(search.toLowerCase()) ||
       c.client_adresse?.toLowerCase().includes(search.toLowerCase()) ||
       c.livreur?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      c.source_id?.toLowerCase().includes(search.toLowerCase()) || // ← ID Magento
+      c.source_id?.toLowerCase().includes(search.toLowerCase()) || 
       String(c.id).includes(search);
     return matchTab && matchSearch;
   });
@@ -147,7 +147,7 @@ export default function AdminCommandesLivraisons() {
       ? commandes.length
       : commandes.filter((c) => c.statut === key).length;
 
-  // ── Filtre livreurs dans le modal ────────────────────────────────────────
+  // Filtre livreurs dans le modal
   const livreursFiltres = livreurs
     .filter((l) => l.status === "active" || !l.status)
     .filter(
