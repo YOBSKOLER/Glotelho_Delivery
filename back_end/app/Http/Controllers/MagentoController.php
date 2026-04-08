@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\MagentoService;
-use Illuminate\Http\Request;
+// use Illuminate\Http\Request;
 
 class MagentoController extends Controller
 {

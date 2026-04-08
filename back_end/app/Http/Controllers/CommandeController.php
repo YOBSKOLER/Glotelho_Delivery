@@ -56,50 +56,36 @@ class CommandeController extends Controller
     // POST /api/admin/commandes/{id}/assigner
     // Assigne un livreur à une commande ET crée automatiquement une livraison
     public function assigner(Request $request, $id)
-    {
-        $request->validate([
-            'livreur_id' => 'required|exists:users,id',
-        ]);
+ {
+    $request->validate([
+        'livreur_id'            => 'required|exists:users,id',
+        'date_livraison_prevue' => 'nullable|date',
+    ]);
 
-        $commande = Commande::with('livraison')->findOrFail($id);
+    $commande = Commande::findOrFail($id);
 
-        if ($commande->statut !== 'en_attente') {
-            return response()->json([
-                'error' => 'Cette commande est déjà assignée ou en cours.'
-            ], 422);
-        }
+    $commande->update([
+        'livreur_id' => $request->livreur_id,
+        'statut'     => 'assignee',
+    ]);
 
-        // Vérifie que c'est bien un livreur
-        $livreur = User::where('id', $request->livreur_id)
-                       ->where('role', 'livreur')
-                       ->firstOrFail();
+    Livraison::updateOrCreate(
+        ['commande_id' => $commande->id],
+        [
+            'livreur_id'            => $request->livreur_id,
+            'name'                  => $commande->client_nom,
+            'adresse'               => $commande->client_adresse,
+            'latitude'              => $commande->latitude,
+            'longitude'             => $commande->longitude,
+            'detail_commande'       => json_encode($commande->articles),
+            'status'                => 'assigned',
+            'date_livraison'        => now()->toDateString(),
+            'date_livraison_prevue' => $request->date_livraison_prevue,
+        ]
+    );
 
-        // 1. Mettre à jour la commande
-        $commande->update([
-            'livreur_id' => $livreur->id,
-            'statut'     => 'assignee',
-        ]);
-
-        // 2. Créer la livraison liée à la commande
-        $livraison = Livraison::create([
-            'commande_id'     => $commande->id,
-            'livreur_id'      => $livreur->id,
-            'name'            => $commande->client_nom,
-            'adresse'         => $commande->client_adresse,
-            'latitude'        => $commande->latitude,
-            'longitude'       => $commande->longitude,
-            'detail_commande' => json_encode($commande->articles),
-            'status'          => 'assigned',
-            'date_livraison'  => now()->toDateString(),
-        ]);
-
-        return response()->json([
-            'message'   => 'Livreur assigné. Livraison créée avec succès.',
-            'commande'  => $commande->load(['livreur', 'livraison']),
-            'livraison' => $livraison->load(['livreur', 'commande']),
-        ]);
-    }
-
+    return response()->json(['message' => 'Livreur assigné.', 'commande' => $commande->load('livreur')]);
+ }
     // PUT /api/admin/commandes/{id}/statut
     // L'admin peut seulement passer en_livraison ou livree (pas annulee)
     public function updateStatut(Request $request, $id)

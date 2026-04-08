@@ -1,6 +1,10 @@
 import api from "./api";
 
 const livreurService = {
+  reporter: async (id, data) => {
+    const res = await api.put(`/livreur/livraisons/${id}/reporter`, data);
+    return res.data;
+  },
   // GET /api/livreur/livraisons
   getMesLivraisons: async () => {
     const res = await api.get("/livreur/livraisons");
@@ -22,7 +26,7 @@ const livreurService = {
   // GET historique (livraisons livrées)
   getHistorique: async () => {
     const res = await api.get("/livreur/historique");
-    return res.data?.livraisons || res.data || [];
+    return res.data?.livraisons || res.daa || [];
   },
 };
 

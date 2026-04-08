@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import { FiPackage , FiCalendar, FiActivity} from "react-icons/fi";
 
 export default function LivreurHistorique() {
   const [livraisons, setLivraisons] = useState([]);
@@ -63,7 +64,7 @@ export default function LivreurHistorique() {
           </div>
         ) : livraisons.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <p className="text-4xl mb-3">📦</p>
+            <p className="text-4xl mb-3"><FiPackage size={40} /></p>
             <p className="text-sm">Aucune livraison complétée</p>
           </div>
         ) : (
@@ -82,10 +83,10 @@ export default function LivreurHistorique() {
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mb-1">
-                  📍 {liv.commande?.client_adresse || liv.adresse || "—"}
+                   {liv.commande?.client_adresse || liv.adresse || "—"}
                 </p>
                 <p className="text-xs text-gray-400">
-                  📅{" "}
+                  <FiCalendar size={14} />
                   {liv.updated_at
                     ? new Date(liv.updated_at).toLocaleDateString("fr-FR")
                     : "—"}

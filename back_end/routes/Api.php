@@ -71,6 +71,7 @@ Route::middleware(['auth:sanctum', 'livreur'])->group(function () {
 
     Route::get('/livreur/livraisons/historique',    [LivreurController::class, 'historique']);
     Route::get('/livreur/livraisons',               [LivreurController::class, 'mesLivraisons']);
+    Route::put('/livreur/livraisons/{id}/reporter', [LivreurController::class, 'reporter']);
     Route::put('/livreur/livraisons/{id}/terminer', [LivreurController::class, 'terminer']);
     Route::get('/livreur/livraisons/{id}',          [LivreurController::class, 'show']);
 });
@@ -86,3 +87,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/profile/update',  [ProfileController::class, 'update']);
     Route::put('/profile/password',[ProfileController::class, 'updatePassword']);
 });
+
+Route::get('/noter/{token}',  [NotationController::class, 'show']);
+Route::post('/noter/{token}', [NotationController::class, 'store']);

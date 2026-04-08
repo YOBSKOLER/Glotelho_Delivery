@@ -34,6 +34,12 @@ const tabs = [
     cls: "text-orange-600 bg-orange-50 border-orange-200",
   },
   {
+    key: "reportee",
+    label: "Reportées",
+    icon: <FiCalendar size={14} />,
+    cls: "text-purple-600 bg-purple-50 border-purple-200",
+  },
+  {
     key: "livree",
     label: "Livrées",
     icon: <FiCheckCircle size={14} />,
@@ -51,6 +57,7 @@ const statutBadge = {
   en_attente: "bg-yellow-50 text-yellow-700",
   assignee: "bg-blue-50 text-blue-700",
   en_livraison: "bg-orange-50 text-orange-700",
+  reportee: "bg-purple-50 text-purple-700",
   livree: "bg-green-50 text-green-700",
   annulee: "bg-red-50 text-red-500",
 };
@@ -59,6 +66,7 @@ const statutLabel = {
   en_attente: "En attente",
   assignee: "Assignée",
   en_livraison: "En livraison",
+  reportee: "Reportée",
   livree: "Livrée",
   annulee: "Annulée",
 };
@@ -75,6 +83,9 @@ export default function AdminCommandesLivraisons() {
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState(null);
   const [selectedLivreur, setSelectedLivreur] = useState("");
+  const [livreurSearch, setLivreurSearch] = useState("");
+  const [datePrevue, setDatePrevue] = useState("");
+  const [heurePrevue, setHeurePrevue] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
@@ -85,8 +96,23 @@ export default function AdminCommandesLivraisons() {
         api.get("/admin/commandes"),
         api.get("/admin/livreurs"),
       ]);
+      // Compte les livraisons en cours pour chaque livreur
+      const livRes = await api.get("/admin/livraisons");
+      const livraisons = livRes.data?.livraisons || [];
+
+      const livreursAvecCharge = (lRes.data?.livreurs || lRes.data || []).map(
+        (l) => ({
+          ...l,
+          en_cours: livraisons.filter(
+            (liv) =>
+              liv.livreur_id === l.id &&
+              ["assigned", "in_delivery"].includes(liv.status),
+          ).length,
+        }),
+      );
+
       setCommandes(cRes.data?.commandes || cRes.data || []);
-      setLivreurs(lRes.data?.livreurs || lRes.data || []);
+      setLivreurs(livreursAvecCharge);
     } catch (e) {
       console.error(e);
     } finally {
@@ -97,23 +123,23 @@ export default function AdminCommandesLivraisons() {
   useEffect(() => {
     fetchData();
   }, []);
-
-  // Réinitialise la page quand on change d'onglet ou de recherche
   useEffect(() => {
     setPage(1);
   }, [activeTab, search]);
 
+  // ── Filtre commandes ─────────────────────────────────────────────────────
   const filtered = commandes.filter((c) => {
     const matchTab = activeTab === "tous" || c.statut === activeTab;
     const matchSearch =
       !search ||
       c.client_nom?.toLowerCase().includes(search.toLowerCase()) ||
       c.client_adresse?.toLowerCase().includes(search.toLowerCase()) ||
-      c.livreur?.name?.toLowerCase().includes(search.toLowerCase());
+      c.livreur?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      c.source_id?.toLowerCase().includes(search.toLowerCase()) || // ← ID Magento
+      String(c.id).includes(search);
     return matchTab && matchSearch;
   });
 
-  // Pagination côté frontend
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const countTab = (key) =>
@@ -121,9 +147,23 @@ export default function AdminCommandesLivraisons() {
       ? commandes.length
       : commandes.filter((c) => c.statut === key).length;
 
+  // ── Filtre livreurs dans le modal ────────────────────────────────────────
+  const livreursFiltres = livreurs
+    .filter((l) => l.status === "active" || !l.status)
+    .filter(
+      (l) =>
+        !livreurSearch ||
+        l.name?.toLowerCase().includes(livreurSearch.toLowerCase()) ||
+        l.email?.toLowerCase().includes(livreurSearch.toLowerCase()),
+    )
+    .sort((a, b) => a.en_cours - b.en_cours); // ← tri par charge croissante
+
   const openAssign = (commande) => {
     setSelected(commande);
     setSelectedLivreur("");
+    setLivreurSearch("");
+    setDatePrevue("");
+    setHeurePrevue("");
     setError("");
     setShowModal(true);
   };
@@ -133,9 +173,11 @@ export default function AdminCommandesLivraisons() {
     setSaving(true);
     setError("");
     try {
-      await api.post(`/admin/commandes/${selected.id}/assigner`, {
-        livreur_id: selectedLivreur,
-      });
+      const payload = { livreur_id: selectedLivreur };
+      if (datePrevue && heurePrevue) {
+        payload.date_livraison_prevue = `${datePrevue}T${heurePrevue}:00`;
+      }
+      await api.post(`/admin/commandes/${selected.id}/assigner`, payload);
       await fetchData();
       setShowModal(false);
       setActiveTab("assignee");
@@ -163,8 +205,7 @@ export default function AdminCommandesLivraisons() {
                 : "text-gray-400 bg-white border-gray-100 hover:border-gray-200"
             }`}
           >
-            {tab.icon}
-            {tab.label}
+            {tab.icon} {tab.label}
             <span
               className={`ml-1 px-1.5 py-0.5 rounded-full text-xs ${activeTab === tab.key ? "bg-white bg-opacity-60" : "bg-gray-100"}`}
             >
@@ -174,7 +215,7 @@ export default function AdminCommandesLivraisons() {
         ))}
       </div>
 
-      {/* Recherche */}
+      {/* Recherche — supporte ID Magento */}
       <div className="relative mb-5">
         <FiSearch
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -182,7 +223,7 @@ export default function AdminCommandesLivraisons() {
         />
         <input
           type="text"
-          placeholder="Rechercher un client, une adresse, un livreur..."
+          placeholder="Rechercher par nom, adresse, livreur ou référence Magento..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] bg-white"
@@ -211,6 +252,9 @@ export default function AdminCommandesLivraisons() {
         <div className="flex flex-col items-center justify-center py-20 text-gray-400 bg-white rounded-2xl border border-gray-100">
           <FiPackage size={40} className="mb-3 opacity-30" />
           <p className="text-sm">Aucune commande trouvée</p>
+          {search && (
+            <p className="text-xs mt-1">Essayez avec une autre référence</p>
+          )}
         </div>
       ) : (
         <>
@@ -220,6 +264,12 @@ export default function AdminCommandesLivraisons() {
                 Array.isArray(c.articles) && c.articles.some((a) => a.fragile);
               const totalQty = Array.isArray(c.articles)
                 ? c.articles.reduce((s, a) => s + (a.qty || 0), 0)
+                : 0;
+              const totalPrix = Array.isArray(c.articles)
+                ? c.articles.reduce(
+                    (s, a) => s + (a.prix || 0) * (a.qty || 1),
+                    0,
+                  )
                 : 0;
               return (
                 <div
@@ -236,9 +286,16 @@ export default function AdminCommandesLivraisons() {
                         <p className="text-sm font-semibold text-gray-800">
                           {c.client_nom}
                         </p>
-                        <p className="text-xs text-gray-400 font-mono">
-                          #{c.id}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-gray-400 font-mono">
+                            #{c.id}
+                          </p>
+                          {c.source_id && (
+                            <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-mono">
+                              {c.source_id}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -255,7 +312,7 @@ export default function AdminCommandesLivraisons() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-500 mb-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs text-gray-500 mb-3">
                     <div className="flex items-center gap-1.5">
                       <FiMapPin
                         size={12}
@@ -270,6 +327,13 @@ export default function AdminCommandesLivraisons() {
                       />
                       <span>{totalQty} article(s)</span>
                     </div>
+                    {totalPrix > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-gray-600">
+                          {totalPrix.toLocaleString("fr-FR")} FCFA
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-1.5">
                       <FiCalendar
                         size={12}
@@ -289,10 +353,8 @@ export default function AdminCommandesLivraisons() {
                         <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[#2563EB] text-xs font-bold flex-shrink-0">
                           {c.livreur.name?.charAt(0).toUpperCase()}
                         </div>
-                        <p className="text-xs text-gray-600">
-                          <span className="font-medium text-gray-800">
-                            {c.livreur.name}
-                          </span>
+                        <p className="text-xs text-gray-600 font-medium">
+                          {c.livreur.name}
                         </p>
                       </div>
                     ) : (
@@ -344,10 +406,10 @@ export default function AdminCommandesLivraisons() {
         </>
       )}
 
-      {/* Modal */}
+      {/* ── Modal assignation amélioré ── */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-semibold text-gray-900">
                 Assigner un livreur
@@ -359,34 +421,66 @@ export default function AdminCommandesLivraisons() {
                 <FiX size={20} />
               </button>
             </div>
+
+            {/* Infos commande */}
             <div className="bg-gray-50 rounded-xl p-3 mb-4">
-              <p className="text-xs text-gray-500 mb-1">
-                Commande #{selected?.id}
-              </p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-gray-500">
+                  Commande #{selected?.id}
+                </p>
+                {selected?.source_id && (
+                  <span className="text-xs font-mono bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">
+                    {selected.source_id}
+                  </span>
+                )}
+              </div>
               <p className="text-sm font-medium text-gray-800">
                 {selected?.client_nom}
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-gray-400 mt-0.5 truncate">
                 {selected?.client_adresse}
               </p>
             </div>
+
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
                 {error}
               </div>
             )}
+
             <form onSubmit={handleAssign} className="space-y-4">
+              {/* Recherche livreur */}
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-2">
                   Choisir un livreur
                 </label>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {livreurs
-                    .filter((l) => l.status === "active" || !l.status)
-                    .map((l) => (
+                <div className="relative mb-2">
+                  <FiSearch
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    size={13}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Rechercher un livreur..."
+                    value={livreurSearch}
+                    onChange={(e) => setLivreurSearch(e.target.value)}
+                    className="w-full pl-8 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#2563EB] bg-gray-50"
+                  />
+                </div>
+                <div className="space-y-2 max-h-44 overflow-y-auto">
+                  {livreursFiltres.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-3">
+                      Aucun livreur trouvé
+                    </p>
+                  ) : (
+                    livreursFiltres.map((l) => (
                       <label
                         key={l.id}
-                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${selectedLivreur == l.id ? "border-[#2563EB] bg-blue-50" : "border-gray-100 hover:bg-gray-50"}`}
+                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${
+                          selectedLivreur == l.id
+                            ? "border-[#2563EB] bg-blue-50"
+                            : "border-gray-100 hover:bg-gray-50"
+                        }`}
                       >
                         <input
                           type="radio"
@@ -397,26 +491,93 @@ export default function AdminCommandesLivraisons() {
                           className="hidden"
                         />
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${selectedLivreur == l.id ? "bg-[#2563EB] text-white" : "bg-gray-100 text-gray-600"}`}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                            selectedLivreur == l.id
+                              ? "bg-[#2563EB] text-white"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
                         >
                           {l.name?.charAt(0).toUpperCase()}
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-800">
                             {l.name}
                           </p>
-                          <p className="text-xs text-gray-400">{l.email}</p>
+                          <p className="text-xs text-gray-400 truncate">
+                            {l.email}
+                          </p>
                         </div>
+                        {/* Charge actuelle */}
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-lg font-medium flex-shrink-0 ${
+                            l.en_cours === 0
+                              ? "bg-green-50 text-green-600"
+                              : l.en_cours <= 2
+                                ? "bg-yellow-50 text-yellow-600"
+                                : "bg-red-50 text-red-500"
+                          }`}
+                        >
+                          {l.en_cours} en cours
+                        </span>
                         {selectedLivreur == l.id && (
                           <FiCheckCircle
-                            className="ml-auto text-[#2563EB]"
-                            size={16}
+                            className="text-[#2563EB] flex-shrink-0"
+                            size={14}
                           />
                         )}
                       </label>
-                    ))}
+                    ))
+                  )}
                 </div>
               </div>
+
+              {/* Date et heure de livraison */}
+              <div className="border-t border-gray-100 pt-4">
+                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  Planifier la livraison{" "}
+                  <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      value={datePrevue}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={(e) => setDatePrevue(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#2563EB] bg-gray-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Heure
+                    </label>
+                    <input
+                      type="time"
+                      value={heurePrevue}
+                      onChange={(e) => setHeurePrevue(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#2563EB] bg-gray-50"
+                    />
+                  </div>
+                </div>
+                {datePrevue && heurePrevue && (
+                  <p className="text-xs text-[#2563EB] mt-1.5">
+                     Livraison prévue le{" "}
+                    {new Date(`${datePrevue}T${heurePrevue}`).toLocaleString(
+                      "fr-FR",
+                      {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                    )}
+                  </p>
+                )}
+              </div>
+
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -428,8 +589,9 @@ export default function AdminCommandesLivraisons() {
                 <button
                   type="submit"
                   disabled={!selectedLivreur || saving}
-                  className="flex-1 bg-[#2563EB] hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-xl transition disabled:opacity-50"
+                  className="flex-1 bg-[#2563EB] hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
                 >
+                  <FiTruck size={14} />
                   {saving ? "Assignation..." : "Confirmer"}
                 </button>
               </div>
