@@ -17,13 +17,16 @@ import {
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconRetinaUrl: new URL(
+    "leaflet/dist/images/marker-icon-2x.png",
+    import.meta.url,
+  ).href,
+  iconUrl: new URL("leaflet/dist/images/marker-icon.png", import.meta.url).href,
+  shadowUrl: new URL("leaflet/dist/images/marker-shadow.png", import.meta.url)
+    .href,
 });
 
-// ── Composant signature
+// ── Pad de signature tactile ───────────────────────────────────────────────────
 function SignaturePad({ onSave, onClear }) {
   const canvasRef = useRef(null);
   const drawing = useRef(false);
@@ -47,7 +50,6 @@ function SignaturePad({ onSave, onClear }) {
     ctx.beginPath();
     ctx.moveTo(pos.x, pos.y);
   };
-
   const draw = (e) => {
     e.preventDefault();
     if (!drawing.current) return;
@@ -60,18 +62,15 @@ function SignaturePad({ onSave, onClear }) {
     ctx.lineCap = "round";
     ctx.stroke();
   };
-
   const endDraw = (e) => {
     e.preventDefault();
     drawing.current = false;
-    if (hasDrawn.current) {
-      onSave(canvasRef.current.toDataURL("image/png"));
-    }
+    if (hasDrawn.current) onSave(canvasRef.current.toDataURL("image/png"));
   };
-
   const clear = () => {
-    const canvas = canvasRef.current;
-    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+    canvasRef.current
+      .getContext("2d")
+      .clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     hasDrawn.current = false;
     onClear();
   };
@@ -93,7 +92,9 @@ function SignaturePad({ onSave, onClear }) {
         />
       </div>
       <div className="flex justify-between items-center">
-        <p className="text-xs text-gray-400">Signez dans la zone ci-dessus</p>
+        <p className="text-xs text-gray-400">
+          Faites signer le client dans la zone ci-dessus
+        </p>
         <button
           type="button"
           onClick={clear}
@@ -113,6 +114,13 @@ export default function DeliveryDetails() {
   const [livraison, setLivraison] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Preuve
+  const [showPreuveModal, setShowPreuveModal] = useState(false);
+  const [photo, setPhoto] = useState(null);
+  const [signature, setSignature] = useState(null);
+  const [terminating, setTerminating] = useState(false);
+  const fileInputRef = useRef(null);
+
   // Report
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportDate, setReportDate] = useState("");
@@ -120,13 +128,6 @@ export default function DeliveryDetails() {
   const [reportRaison, setReportRaison] = useState("");
   const [reportNote, setReportNote] = useState("");
   const [reporting, setReporting] = useState(false);
-
-  // Preuve de livraison
-  const [showPreuveModal, setShowPreuveModal] = useState(false);
-  const [photo, setPhoto] = useState(null);
-  const [signature, setSignature] = useState(null);
-  const [terminating, setTerminating] = useState(false);
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -141,7 +142,8 @@ export default function DeliveryDetails() {
     })();
   }, [id]);
 
-  //  Photo
+  
+  // ── Photo ─────────────────────────────────────────────────────────────────
   const handlePhoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -150,7 +152,7 @@ export default function DeliveryDetails() {
     reader.readAsDataURL(file);
   };
 
-  // Terminer avec preuve
+  // ── Terminer avec preuve ──────────────────────────────────────────────────
   const handleTerminer = async (e) => {
     e.preventDefault();
     if (!signature) {
@@ -160,49 +162,48 @@ export default function DeliveryDetails() {
     setTerminating(true);
     try {
       await api.put(`/livreur/livraisons/${id}/terminer`, {
-        preuve_photo: photo,
-        preuve_signature: signature,
+        preuve_photo: photo || null,
+        preuve_signature: signature || null,
       });
-      // Nettoie sessionStorage
+      // Nettoie session
       try {
-        const saved = sessionStorage.getItem("livraisons_optimized");
+        const saved = sessionStorage.getItem("liv_o");
         if (saved) {
-          const optimized = JSON.parse(saved).filter(
-            (l) => l.id !== parseInt(id),
-          );
-          sessionStorage.setItem(
-            "livraisons_optimized",
-            JSON.stringify(optimized),
-          );
+          const opt = JSON.parse(saved).filter((l) => l.id !== parseInt(id));
+          sessionStorage.setItem("liv_o", JSON.stringify(opt));
         }
-      } catch {
-        /* empty */
-      }
+      } catch { /* empty */ }
       navigate("/livreur/dashboard");
-    } catch {
+    } catch (e) {
+      console.error(e);
       alert("Erreur lors de la confirmation.");
     } finally {
       setTerminating(false);
     }
   };
 
-  //  Reporter
+  // ── Reporter ──────────────────────────────────────────────────────────────
   const handleReporter = async (e) => {
     e.preventDefault();
     if (!reportRaison.trim()) {
       alert("La raison du report est obligatoire.");
       return;
     }
+    if (!reportDate || !reportHeure) {
+      alert("Veuillez choisir une date et une heure.");
+      return;
+    }
     setReporting(true);
     try {
       await api.put(`/livreur/livraisons/${id}/reporter`, {
-        date_livraison_prevue: `${reportDate}T${reportHeure}:00`,
+        date_livraison_prevue: `${reportDate} ${reportHeure}:00`,
         raison_report: reportRaison,
-        note_report: reportNote,
+        note_report: reportNote || null,
       });
       setShowReportModal(false);
       navigate("/livreur/dashboard");
-    } catch {
+    } catch (e) {
+      console.error(e);
       alert("Erreur lors du report.");
     } finally {
       setReporting(false);
@@ -224,8 +225,9 @@ export default function DeliveryDetails() {
     );
 
   const commande = livraison.commande;
-  const lat = commande?.latitude || livraison.latitude;
-  const lng = commande?.longitude || livraison.longitude;
+  const lat = parseFloat(commande?.latitude || livraison.latitude);
+  const lng = parseFloat(commande?.longitude || livraison.longitude);
+  const hasCoords = lat && lng && !isNaN(lat) && !isNaN(lng);
   const isFragile =
     Array.isArray(commande?.articles) &&
     commande.articles.some((a) => a.fragile);
@@ -233,6 +235,9 @@ export default function DeliveryDetails() {
   const totalPrix = articles.reduce(
     (s, a) => s + (a.prix || 0) * (a.qty || 1),
     0,
+  );
+  const canAct = ["assigned", "in_delivery", "reportee"].includes(
+    livraison.status,
   );
 
   return (
@@ -256,7 +261,7 @@ export default function DeliveryDetails() {
       </div>
 
       {/* Carte */}
-      {lat && lng ? (
+      {hasCoords ? (
         <div className="h-44">
           <MapContainer
             center={[lat, lng]}
@@ -271,7 +276,7 @@ export default function DeliveryDetails() {
           </MapContainer>
         </div>
       ) : (
-        <div className="h-28 bg-blue-50 flex items-center justify-center">
+        <div className="h-24 bg-blue-50 flex items-center justify-center">
           <p className="text-gray-400 text-sm">GPS non disponible</p>
         </div>
       )}
@@ -300,7 +305,7 @@ export default function DeliveryDetails() {
           </div>
         )}
 
-        {/* Raison du report */}
+        {/* Raison report si reportée */}
         {livraison.raison_report && (
           <div className="bg-purple-50 rounded-2xl p-4 flex items-start gap-3 border border-purple-100">
             <FiAlertCircle
@@ -308,22 +313,22 @@ export default function DeliveryDetails() {
               className="text-purple-600 flex-shrink-0 mt-0.5"
             />
             <div>
-              <p className="text-xs font-semibold text-purple-700">
+              <p className="text-xs font-semibold text-purple-700 mb-0.5">
                 Raison du report
               </p>
               <p className="text-sm text-purple-600">
                 {livraison.raison_report}
               </p>
               {livraison.note_report && (
-                <p className="text-xs text-purple-400 mt-0.5">
-                  {livraison.note_report}
+                <p className="text-xs text-purple-400 mt-0.5 italic">
+                  "{livraison.note_report}"
                 </p>
               )}
             </div>
           </div>
         )}
 
-        {/* Infos client */}
+        {/* Client */}
         <div className="bg-white rounded-2xl p-5 border border-gray-100">
           <h2 className="text-sm font-semibold text-gray-800 mb-4">Client</h2>
           <div className="space-y-3">
@@ -427,11 +432,9 @@ export default function DeliveryDetails() {
         )}
       </div>
 
-      {/* Boutons action */}
+      {/* Boutons */}
       <div className="px-4 pb-10 space-y-3">
-        {(livraison.status === "assigned" ||
-          livraison.status === "in_delivery" ||
-          livraison.status === "reportee") && (
+        {canAct && (
           <>
             <button
               onClick={() => setShowPreuveModal(true)}
@@ -439,7 +442,6 @@ export default function DeliveryDetails() {
             >
               <FiCheckCircle size={18} /> Confirmer la livraison
             </button>
-
             <button
               onClick={() => setShowReportModal(true)}
               className="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold py-4 rounded-2xl border border-purple-200 transition flex items-center justify-center gap-2"
@@ -456,7 +458,7 @@ export default function DeliveryDetails() {
         )}
       </div>
 
-      {/* ── Modal Preuve de livraison ── */}
+      {/* ── Modal Preuve ── */}
       {showPreuveModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50">
           <div className="bg-white w-full rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto">
@@ -522,24 +524,16 @@ export default function DeliveryDetails() {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   <FiEdit3 size={14} className="inline mr-1" /> Signature du
-                  client
-                  <span className="text-red-500 ml-1">*</span>
+                  client <span className="text-red-500">*</span>
                 </label>
                 <SignaturePad
-                  onSave={(data) => setSignature(data)}
+                  onSave={setSignature}
                   onClear={() => setSignature(null)}
                 />
                 {signature && (
-                  <div className="mt-2">
-                    <img
-                      src={signature}
-                      alt="Signature"
-                      className="h-16 border border-gray-100 rounded-lg bg-white p-1"
-                    />
-                    <p className="text-xs text-green-600 mt-1">
-                      Signature enregistrée
-                    </p>
-                  </div>
+                  <p className="text-xs text-green-600 mt-1">
+                     Signature enregistrée
+                  </p>
                 )}
               </div>
 
@@ -586,15 +580,15 @@ export default function DeliveryDetails() {
                 ⚠ Client absent
               </p>
               <p className="text-xs text-orange-500 mt-0.5">
-                Cette information sera visible par l'administrateur
+                La raison sera visible par l'administrateur
               </p>
             </div>
 
             <form onSubmit={handleReporter} className="space-y-4">
-              {/* Raison obligatoire */}
+              {/* Raisons rapides */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Raison du report <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  Raison <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   {[
@@ -607,11 +601,7 @@ export default function DeliveryDetails() {
                       key={r}
                       type="button"
                       onClick={() => setReportRaison(r)}
-                      className={`text-xs py-2 px-3 rounded-xl border transition ${
-                        reportRaison === r
-                          ? "bg-purple-100 border-purple-400 text-purple-700 font-semibold"
-                          : "bg-gray-50 border-gray-200 text-gray-600"
-                      }`}
+                      className={`text-xs py-2 px-3 rounded-xl border transition ${reportRaison === r ? "bg-purple-100 border-purple-400 text-purple-700 font-semibold" : "bg-gray-50 border-gray-200 text-gray-600"}`}
                     >
                       {r}
                     </button>
@@ -620,7 +610,7 @@ export default function DeliveryDetails() {
                 {reportRaison === "Autre" && (
                   <input
                     type="text"
-                    placeholder="Précisez la raison..."
+                    placeholder="Précisez..."
                     onChange={(e) => setReportRaison(e.target.value)}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-gray-50"
                   />
@@ -659,14 +649,14 @@ export default function DeliveryDetails() {
               {/* Note optionnelle */}
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Note complémentaire{" "}
+                  Note{" "}
                   <span className="text-gray-400 font-normal">(optionnel)</span>
                 </label>
                 <textarea
                   value={reportNote}
                   onChange={(e) => setReportNote(e.target.value)}
-                  placeholder="Ex: Le voisin m'a dit que le client revient à 15h..."
-                  rows={3}
+                  placeholder="Ex: Le voisin dit que le client revient à 15h..."
+                  rows={2}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-gray-50 resize-none"
                 />
               </div>
@@ -674,7 +664,7 @@ export default function DeliveryDetails() {
               {reportDate && reportHeure && (
                 <div className="bg-purple-50 rounded-xl p-3 border border-purple-100">
                   <p className="text-xs text-purple-700 font-semibold">
-                    Nouveau RDV :{" "}
+                     Nouveau RDV :{" "}
                     {new Date(`${reportDate}T${reportHeure}`).toLocaleString(
                       "fr-FR",
                       {

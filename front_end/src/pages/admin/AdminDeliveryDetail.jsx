@@ -11,6 +11,7 @@ import {
   FiClock,
   FiAlertCircle,
   FiStar,
+  FiCamera,
 } from "react-icons/fi";
 
 const statusConfig = {
@@ -208,7 +209,7 @@ export default function AdminLivraisonDetail() {
                 {livraison.preuve_photo && (
                   <div>
                     <p className="text-xs text-gray-400 mb-2">
-                      📸 Photo du colis
+                      <FiCamera /> Photo du colis
                     </p>
                     <img
                       src={livraison.preuve_photo}
@@ -221,7 +222,7 @@ export default function AdminLivraisonDetail() {
                 {livraison.preuve_signature && (
                   <div>
                     <p className="text-xs text-gray-400 mb-2">
-                      ✍️ Signature client
+                      Signature client
                     </p>
                     <img
                       src={livraison.preuve_signature}

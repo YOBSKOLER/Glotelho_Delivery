@@ -16,6 +16,7 @@ import LivreurLivraisonDetail from "../pages/livreurs/DeliveryDetails";
 import LivreurHistorique from "../pages/livreurs/History";
 import LivreurMesLivraisons from "../pages/livreurs/MyDeliveries";
 import LivreurProfile from "../pages/livreurs/Profil";
+import LivraisonsReportees from "../pages/livreurs/reportees";
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { isAuthenticated, role } = useAuth();
@@ -147,6 +148,14 @@ export default function AppRouter() {
           element={
             <L>
               <LivreurMesLivraisons />
+            </L>
+          }
+        />
+        <Route
+          path="/livreur/reportees"
+          element={
+            <L>
+              <LivraisonsReportees />
             </L>
           }
         />

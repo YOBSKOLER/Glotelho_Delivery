@@ -10,9 +10,9 @@ import {
   FiLogOut,
   FiMenu,
   FiX,
-  FiTruck,
   FiSun,
   FiMoon,
+  FiAlertCircle,
 } from "react-icons/fi";
 
 const menuItems = [
@@ -31,6 +31,9 @@ const menuItems = [
   { path: "/admin/profile", label: "Profil", icon: <FiUser size={18} /> },
 ];
 
+// Clé SÉPARÉE pour admin
+const DARK_KEY = "adminDark";
+
 export default function AdminLayout({ children, title, subtitle }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -38,137 +41,142 @@ export default function AdminLayout({ children, title, subtitle }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dark, setDark] = useState(() => {
-    const saved = localStorage.getItem("darkMode") === "true";
-    document.documentElement.classList.toggle("dark", saved);
+    const saved = localStorage.getItem(DARK_KEY) === "true";
+    if (saved) document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
     return saved;
   });
 
   const toggleDark = () => {
     const next = !dark;
     setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("darkMode", next);
+    if (next) document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
+    localStorage.setItem(DARK_KEY, next);
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  const D = {
+    sidebar: dark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200",
+    main: dark ? "bg-gray-950" : "bg-[#F8FAFC]",
+    text: dark ? "text-gray-100" : "text-gray-800",
+    sub: dark ? "text-gray-400" : "text-gray-500",
+    hover: dark
+      ? "hover:bg-gray-800 hover:text-white"
+      : "hover:bg-gray-100 hover:text-gray-800",
+    card: dark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100",
+    thead: dark ? "bg-gray-900 text-gray-400" : "bg-gray-50 text-gray-400",
+    row: dark
+      ? "divide-gray-700 hover:bg-gray-700"
+      : "divide-gray-50 hover:bg-gray-50",
+    input: dark
+      ? "bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
+      : "bg-white border-gray-200 text-gray-800",
   };
-
-  const bg = dark ? "bg-gray-900 border-gray-700" : "bg-white border-gray-100";
-  const bgMain = dark ? "bg-gray-950" : "bg-[#F8FAFC]";
-  const txt = dark ? "text-gray-200" : "text-gray-800";
-  const sub = dark ? "text-gray-400" : "text-gray-400";
-  const hover = dark ? "hover:bg-gray-800" : "hover:bg-gray-50";
 
   const SidebarContent = () => (
-    <>
+    <div className="flex flex-col h-full">
       {/* Logo */}
       <div
-        className={`flex items-center justify-center px-4 py-5 border-b border-gray-100 ${collapsed ? "justify-center" : ""}`}
+        className={`flex items-center justify-center px-4 py-4 border-b ${dark ? "border-gray-700" : "border-gray-200"}`}
       >
         {collapsed ? (
-          <img
-            src="/src/assets/images/Favicon.png"
-            alt="Glotelho"
-            className="w-10 h-10"
-          />
+          <div className="w-9 h-9 bg-[#2563EB] rounded-xl flex items-center justify-center text-white font-bold text-sm">
+            G
+          </div>
         ) : (
           <img
             src="/src/assets/images/logo1.png"
-            alt="Glotelho Delivery"
-            className="h-18 w-auto"
+            alt="Glotelho"
+            className="h-12 w-auto object-contain"
           />
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {menuItems.map((item) => {
-          const active = location.pathname === item.path;
+          const active = location.pathname.startsWith(item.path);
           return (
             <Link
               key={item.path}
               to={item.path}
               onClick={() => setMobileOpen(false)}
               title={collapsed ? item.label : ""}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${collapsed ? "justify-center" : ""} ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium ${collapsed ? "justify-center" : ""} ${
                 active
                   ? "bg-[#2563EB] text-white shadow-sm"
-                  : `${sub} ${hover} hover:${txt}`
+                  : `${D.sub} ${D.hover}`
               }`}
             >
               <span className="flex-shrink-0">{item.icon}</span>
-              {!collapsed && (
-                <span className="text-sm font-medium">{item.label}</span>
-              )}
+              {!collapsed && <span>{item.label}</span>}
               {active && !collapsed && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-60" />
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-70" />
               )}
             </Link>
           );
         })}
       </nav>
-      {/* Dark mode toggle */}
-      <button
-        onClick={toggleDark}
-        title={collapsed ? (dark ? "Mode clair" : "Mode sombre") : ""}
-        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${collapsed ? "justify-center" : ""} ${sub} ${hover}`}
-      >
-        {dark ? <FiSun size={18} /> : <FiMoon size={18} />}
-        {!collapsed && (
-          <span className="text-sm font-medium">
-            {dark ? "Mode clair" : "Mode sombre"}
-          </span>
-        )}
-      </button>
 
-      {/* User + logout */}
+      {/* Dark toggle */}
+      <div className={`px-3 pb-2`}>
+        <button
+          onClick={toggleDark}
+          title={collapsed ? (dark ? "Mode clair" : "Mode sombre") : ""}
+          className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium ${D.sub} ${D.hover} ${collapsed ? "justify-center" : ""}`}
+        >
+          {dark ? <FiSun size={18} /> : <FiMoon size={18} />}
+          {!collapsed && <span>{dark ? "Mode clair" : "Mode sombre"}</span>}
+        </button>
+      </div>
+
+      {/* User + Logout */}
       <div
-        className={`px-3 py-4 border-t ${dark ? "border-gray-700" : "border-gray-100"} space-y-1`}
+        className={`px-3 py-3 border-t ${dark ? "border-gray-700" : "border-gray-200"}`}
       >
         {!collapsed && (
           <div className="flex items-center gap-3 px-3 py-2 mb-1">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-[#2563EB] text-xs font-bold flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
               {user?.name?.charAt(0).toUpperCase() || "A"}
             </div>
             <div className="flex-1 min-w-0">
-              <div className={`text-xs font-semibold truncate ${txt}`}>
-                {user?.name || "Admin"}
-              </div>
-              <div className={`text-xs truncate ${sub}`}>
-                {user?.email || ""}
-              </div>
+              <p className={`text-xs font-semibold truncate ${D.text}`}>
+                {user?.name}
+              </p>
+              <p className={`text-xs truncate ${D.sub}`}>{user?.email}</p>
             </div>
           </div>
         )}
         <button
-          onClick={handleLogout}
+          onClick={() => {
+            logout();
+            navigate("/login");
+          }}
           title={collapsed ? "Déconnexion" : ""}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 transition-all w-full ${collapsed ? "justify-center" : ""}`}
+          className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition text-sm font-medium ${collapsed ? "justify-center" : ""}`}
         >
           <FiLogOut size={18} />
-          {!collapsed && (
-            <span className="text-sm font-medium">Déconnexion</span>
-          )}
+          {!collapsed && <span>Déconnexion</span>}
         </button>
       </div>
-    </>
+    </div>
   );
 
   return (
-    <div className={`flex h-screen overflow-hidden ${bgMain}`}>
+    <div className={`flex h-screen overflow-hidden ${D.main}`}>
       {/* Sidebar desktop */}
       <aside
-        className={`${collapsed ? "w-[68px]" : "w-60"} ${bg} border-r flex-col transition-all duration-300 flex-shrink-0 hidden lg:flex`}
+        className={`${collapsed ? "w-[68px]" : "w-60"} ${D.sidebar} border-r flex-shrink-0 hidden lg:flex flex-col transition-all duration-300`}
       >
         <SidebarContent />
       </aside>
 
-      {/* Sidebar mobile overlay */}
+      {/* Sidebar mobile */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
-          <div className={`w-64 flex flex-col shadow-2xl ${bg}`}>
+          <div
+            className={`w-64 ${D.sidebar} border-r flex-shrink-0 flex flex-col`}
+          >
             <SidebarContent />
           </div>
           <div
@@ -180,54 +188,51 @@ export default function AdminLayout({ children, title, subtitle }) {
 
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Header */}
         <header
-          className={`${bg} border-b px-4 sm:px-6 py-4 flex items-center justify-between flex-shrink-0`}
+          className={`${D.sidebar} border-b px-4 sm:px-6 py-3.5 flex items-center justify-between flex-shrink-0`}
         >
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className={`p-2 rounded-xl ${hover} transition ${sub} hidden lg:flex`}
+              className={`p-2 rounded-xl ${D.hover} ${D.sub} hidden lg:flex`}
             >
               <FiMenu size={18} />
             </button>
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className={`p-2 rounded-xl ${hover} transition ${sub} lg:hidden`}
+              className={`p-2 rounded-xl ${D.hover} ${D.sub} lg:hidden`}
             >
               {mobileOpen ? <FiX size={18} /> : <FiMenu size={18} />}
             </button>
             {title && (
               <div>
-                <h1 className={`text-sm sm:text-base font-semibold ${txt}`}>
+                <h1 className={`text-sm sm:text-base font-semibold ${D.text}`}>
                   {title}
                 </h1>
                 {subtitle && (
-                  <p className={`text-xs hidden sm:block ${sub}`}>{subtitle}</p>
+                  <p className={`text-xs hidden sm:block ${D.sub}`}>
+                    {subtitle}
+                  </p>
                 )}
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={toggleDark}
-              className={`p-2 rounded-xl ${hover} transition ${sub}`}
+              className={`p-2 rounded-xl ${D.hover} ${D.sub}`}
             >
               {dark ? <FiSun size={18} /> : <FiMoon size={18} />}
             </button>
             <div className="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white text-xs font-bold">
               {user?.name?.charAt(0).toUpperCase() || "A"}
             </div>
-            <span className={`text-sm font-medium hidden sm:block ${txt}`}>
-              {user?.name || "Admin"}
+            <span className={`text-sm font-medium hidden sm:block ${D.text}`}>
+              {user?.name}
             </span>
           </div>
         </header>
-
-        {/* Content */}
-        <main
-          className={`flex-1 overflow-y-auto p-4 sm:p-6 ${dark ? "text-gray-200" : ""}`}
-        >
+        <main className={`flex-1 overflow-y-auto p-4 sm:p-6 ${D.text}`}>
           {children}
         </main>
       </div>
